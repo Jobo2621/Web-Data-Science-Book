@@ -475,7 +475,7 @@ The choice of data format is itself a transparency decision. When governments an
 
 ::: {.callout-tip}
 ## Missing Manual Reference
-For more on data file formats including CSV, TSV, and other common structures, see *Missing Manual* Chapter 20: Data File Formats.
+For more on data file formats including CSV, TSV, and other common structures, see *Missing Manual* [Chapter 20: Data File Formats](https://cuinfoscience.github.io/INFO-Missing-Manual/chapters/data-file-formats.html).
 :::
 
 ## Recommended Exercises
