@@ -33,7 +33,7 @@ The landscape of web data access has undergone a structural transformation since
 
 ::: {.callout-tip}
 ## Missing Manual Reference
-Technical systems embed political choices — who gets access, on what terms, and who decides. For a broader introduction to this idea, see *Missing Manual* Chapter 8: Artifacts Have Politics.
+Technical systems embed political choices — who gets access, on what terms, and who decides. For a broader introduction to this idea, see *Missing Manual* [Chapter 8: Artifacts Have Politics](https://cuinfoscience.github.io/INFO-Missing-Manual/chapters/artifacts-have-politics.html).
 :::
 
 ## Three Structural Pressures
