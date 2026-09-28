@@ -124,7 +124,7 @@ films_df = pd.read_html(url, header=0)[3]
 print(films_df.head())
 ```
 
-The `read_html` function is remarkably powerful for its simplicity, but it has limitations. It struggles with tables that use `colspan` or `rowspan` attributes to merge cells — for example, a table where "Disney" spans two rows to cover multiple films. In those cases, you may need to fall back to manual parsing or clean up the DataFrame after extraction.
+The `read_html` function is remarkably powerful for its simplicity, but it has limitations. It struggles with tables that use `colspan` or `rowspan` attributes to merge cells — for example, a table where "Disney" spans two rows to cover multiple films. In those cases, you may need to fall back to manual parsing or clean up the DataFrame after extraction. *** When the table uses merged cells check the resulting data frame because the values that you mergedmay appear as missing/may not line up ***
 
 ### Cleaning Up read_html Results
 
