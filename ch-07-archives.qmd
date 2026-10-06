@@ -489,7 +489,7 @@ You will reconstruct the archival history of one website you care about, then me
 # Your code here
 ```
 
-**Step 4 — Retrieve two raw captures.** Take the earliest and the most recent capture. Fetch each snapshot with the `id_` suffix on the timestamp — the chapter explains why the toolbar-wrapped version would poison your measurements — sleeping between requests, and cache both pages to local files as you did in @sec-static-pages.
+**Step 4 — Step 4 — Retrieve two raw captures. Get the earliest and latest captures using id_. Wait between requests and save them as earliest.html and latest.html so you can use them later.
 
 ```{python}
 # Step 4: Fetch the earliest and latest captures with the id_ suffix, politely, and cache both to disk.
