@@ -3,15 +3,19 @@ and one picture of a table with the words Tesseract read on it.
 
     python tools/shots/renders/ch-09.py OUTDIR
 
-Reads the saved copies in data/ch-09/ and writes four PNGs to OUTDIR, each 1600
+    python tools/shots/renders/ch-09.py OUTDIR open-comment sales-use-tax   # only these
+
+Reads the saved copies in data/ch-09/ and writes six PNGs to OUTDIR, each 1600
 pixels wide: 2 pixels per CSS pixel of an 800-pixel frame, as the recipes in
-tools/shots/recipes/ch-09.yml say. Run it in the webdata environment, which has
+tools/shots/recipes/ch-09.yml say. The last two are charts that matplotlib draws
+from what the chapter's case studies count. Run it in the webdata environment, which has
 pdfplumber, pypdf, pytesseract, and Tesseract, then import each one
 (tools/shots/README.md, "Hand captures"), naming the program that drew it:
 
     tools/shots/run import ch-09 pdf-objects --file OUTDIR/pdf-objects.png \\
         --by NAME --date YYYY-MM-DD --tool "pdfplumber X.Y.Z"
 """
+import re
 import sys
 from pathlib import Path
 
@@ -100,12 +104,106 @@ def ocr_confidence(out):
     return f"ocr-confidence.png: {boxed} words boxed, {low} below 80"
 
 
+# The case studies' code, as in the chapter ("Case Study: Boulder City Council Minutes")
+MINUTES = ["2018-12-04", "2019-12-03", "2020-12-01", "2020-12-15", "2021-12-14", "2022-12-01",
+           "2022-12-15", "2023-12-07", "2023-12-21", "2024-12-05", "2024-12-19"]
+ENTRY_START = re.compile(r"^[\dlJt](?: ?[\dlJt])? ?\.? +[A-Z]|^[A-Z]\S* .*?\b(?:s ?poke|signed up|withdrew)\b")
+DID_NOT_SPEAK = re.compile(r"did not|withdr|not present|duplicate|moved to", re.IGNORECASE)
+
+
+def clean_page_text(raw_text):
+    """The chapter's clean_page_text(), from "Cleanup Strategies"."""
+    text = re.sub(r'^P ?age \d+[ \t]*$', '', raw_text, flags=re.MULTILINE)
+    text = re.sub(r'\b([A-Z]{1,2})\n(?=[A-Za-z])', r'\1', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    return '\n'.join(line.strip() for line in text.split('\n') if line.strip())
+
+
+def open_comment_counts():
+    """(meeting, listed, spoke) for each December meeting, as the chapter counts them."""
+    counts = []
+    for meeting in MINUTES:
+        reader = PdfReader(DATA / f"council-minutes-{meeting}.pdf")
+        text = "\n".join(clean_page_text(page.extract_text()) for page in reader.pages)
+        section = re.search(r"Open Comment(.*?)Consent Agenda", text, re.DOTALL | re.IGNORECASE).group(1)
+        entries = []
+        for line in section.splitlines():
+            if ENTRY_START.search(line):
+                entries.append(line)
+            elif entries:
+                entries[-1] += " " + line
+        counts.append((meeting, len(entries), sum(not DID_NOT_SPEAK.search(e) for e in entries)))
+    return counts
+
+
+def chart_axes():
+    """A figure 1600 by 800 pixels, with text that comes to 16 CSS pixels and more in an 800-pixel frame."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.size": 12, "font.family": "DejaVu Sans"})
+    fig, ax = plt.subplots(figsize=(8, 4), dpi=200)
+    ax.spines[["top", "right"]].set_visible(False)
+    return fig, ax
+
+
+def open_comment(out):
+    """Residents who spoke at Open Comment, with the people listed who didn't speak above them."""
+    counts = open_comment_counts()
+    fig, ax = chart_axes()
+    x = range(len(counts))
+    spoke = [s for _, _, s in counts]
+    others = [n - s for _, n, s in counts]
+    ax.bar(x, spoke, color="#1f4e79", label="spoke")
+    ax.bar(x, others, bottom=spoke, color="#9ecae1", label="listed, didn't speak")
+    for i, s in enumerate(spoke):
+        ax.text(i, s / 2, str(s), ha="center", va="center", color="white", fontsize=12)
+    ax.set_xticks(list(x), [m.replace("-12-", "\nDec ") for m, _, _ in counts], fontsize=11)
+    ax.set_ylabel("People at Open Comment")
+    ax.legend(frameon=False, ncol=2, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout()
+    fig.savefig(out / "open-comment.png")
+    return f"open-comment.png: spoke {spoke}"
+
+
+def sales_use_tax(out):
+    """Total sales and use tax by year, each year's latest printing, with its change from the year before."""
+    reports = ["revenue-report-2018.pdf", "revenue-report-2019.pdf", "revenue-report-2020.pdf",
+               "revenue-report-2021-12.pdf", "revenue-report-2022-12.pdf",
+               "revenue-report-2023-12.pdf", "revenue-report-2024-12.pdf"]
+    latest = {}
+    for name in reports:
+        with pdfplumber.open(DATA / name) as pdf:
+            page = next(p for p in pdf.pages[:4] if "This report provides" in (p.extract_text() or ""))
+            years = [int(y) for y in page.search(r"(20\d\d) +(20\d\d)")[0]["groups"]]
+            found = page.search("Total Sales and Use Tax")[0]
+            line = page.crop((0, found["top"] - 1, page.width, found["bottom"] + 1))
+            words = [w["text"] for w in line.extract_words() if w["x0"] > found["x1"]][:2]
+            for year, word in zip(years, words):
+                latest[year] = int(re.sub(r"[^\d]", "", word))  # reports run oldest to newest
+    years = sorted(latest)
+    totals = [latest[y] / 1e6 for y in years]
+    fig, ax = chart_axes()
+    ax.bar(years, totals, color="#1f4e79")
+    for i, year in enumerate(years[1:], start=1):
+        change = (latest[year] / latest[years[i - 1]] - 1) * 100
+        ax.text(year, totals[i] + 2, f"{change:+.1f}%", ha="center", fontsize=12)
+    ax.set_xticks(years)
+    ax.set_ylim(0, 200)
+    ax.set_ylabel("Sales and use tax ($ millions)")
+    fig.tight_layout()
+    fig.savefig(out / "sales-use-tax.png")
+    return f"sales-use-tax.png: {[round(t, 1) for t in totals]}"
+
+
+FIGURES = {"pdf-objects": pdf_objects, "two-exhibit-3s": two_exhibit_3s,
+           "missing-totals-row": missing_totals_row, "ocr-confidence": ocr_confidence,
+           "open-comment": open_comment, "sales-use-tax": sales_use_tax}
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2 or any(name not in FIGURES for name in sys.argv[2:]):
         sys.exit(__doc__)
     folder = Path(sys.argv[1])
     folder.mkdir(parents=True, exist_ok=True)
-    print(pdf_objects(folder))
-    print(two_exhibit_3s(folder))
-    print(missing_totals_row(folder))
-    print(ocr_confidence(folder))
+    for name in sys.argv[2:] or FIGURES:
+        print(FIGURES[name](folder))
