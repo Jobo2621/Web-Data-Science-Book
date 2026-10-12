@@ -452,7 +452,8 @@ When platforms close their APIs and render content exclusively through JavaScrip
 
 ## Common Issues to Debug
 
-- **`NoSuchElementException`**: The element does not exist yet because the page has not finished loading. Add `time.sleep()` or use explicit waits with `WebDriverWait`.
+- `NoSuchElementException`: The element may not exist bc the page has not finished loading/selector may not be right. first check that the elements selector matches the page. If it loads right, then use `WebDriverWait` with the right expected condition before trying to find it
+
 - **`StaleElementReferenceException`**: The DOM changed between when you found the element and when you tried to interact with it. Re-find the element.
 - **Driver/browser version mismatch**: Selenium Manager usually resolves this automatically, but brand-new browser releases occasionally break compatibility for a few days. Updating the `selenium` package typically fixes it.
 - **Memory issues**: Each Selenium driver runs a full browser process. Close drivers promptly with `driver.quit()`.
