@@ -9,7 +9,9 @@ for people: what a figure shows that is easy to miss, and what a retake needs.
 |---|---|---|---|---|
 | `missing-totals-row.png` | render | 2026-10-06 | https://documents.bouldercolorado.gov/WebLink/ElectronicFile.aspx?docid=194397&dbid=0&repo=LF8PROD2 | Claude Code: rendered with pdfplumber 0.11.10; imported by tools/shots |
 | `ocr-confidence.png` | render | 2026-10-06 | https://documents.bouldercolorado.gov/WebLink/ElectronicFile.aspx?docid=194397&dbid=0&repo=LF8PROD2 | Claude Code: rendered with pytesseract 0.3.13 with Tesseract 5.5.3; imported by tools/shots |
+| `open-comment.png` | render | 2026-10-12 | https://documents.bouldercolorado.gov/WebLink/Browse.aspx?id=194345&dbid=0&repo=LF8PROD2 | Claude Code: rendered with matplotlib 3.11.2 with pypdf 6.20.1; imported by tools/shots |
 | `pdf-objects.png` | render | 2026-10-06 | https://documents.bouldercolorado.gov/WebLink/ElectronicFile.aspx?docid=194397&dbid=0&repo=LF8PROD2 | Claude Code: rendered with pdfplumber 0.11.10; imported by tools/shots |
+| `sales-use-tax.png` | render | 2026-10-12 | https://documents.bouldercolorado.gov/WebLink/Browse.aspx?id=194345&dbid=0&repo=LF8PROD2 | Claude Code: rendered with matplotlib 3.11.2 with pdfplumber 0.11.10; imported by tools/shots |
 | `two-exhibit-3s.png` | render | 2026-10-06 | https://documents.bouldercolorado.gov/WebLink/ElectronicFile.aspx?docid=194397&dbid=0&repo=LF8PROD2 | Claude Code: rendered with pdfplumber 0.11.10; imported by tools/shots, 1 area blacked out |
 <!-- shots:end -->
 
@@ -56,3 +58,12 @@ book's saved copies of the city's revenue reports (`data/ch-09/`), or, for
   The caption names Tesseract's three misreads in the crop, which the image
   can't show, since it shows the page. On a retake with another Tesseract,
   check them again, and the counts in the chapter's text.
+- `open-comment.png` and `sales-use-tax.png` (2026-10-12) are charts, not
+  pages: matplotlib draws them from what the case studies' code counts, run
+  again inside `tools/shots/renders/ch-09.py` on the saved copies. A retake
+  changes only if the saved files, pypdf, or pdfplumber change.
+  `open-comment.png` shows counts only: the Open Comment lists name members
+  of the public, and neither the chapter nor the chart prints a name. Its
+  counts were checked by reading the 2018 and 2019 lists, and against
+  pdfplumber's text, which gives the same eleven. `sales-use-tax.png` labels
+  each change to one decimal; the chapter's table gives two.

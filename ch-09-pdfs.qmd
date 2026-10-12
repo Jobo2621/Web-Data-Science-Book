@@ -480,7 +480,7 @@ with pdfplumber.open(get_saved_copy("council-minutes-2024-12-05.pdf")) as pdf:
 
 "Mayor" is whole, because its "M" and "a" end up side by side, whatever route the drawing took between them. The vote sits on the motion's line, where the page prints it. The page number is no longer first: pdfplumber reads lines from the top of the page down, and "Page 1" is at the bottom.
 
-Neither library is right in general. pdfplumber merges text that sits side by side into one line, as it merged the motion and its vote here; on a page set in two columns of prose, it would interleave the columns. pypdf keeps the order in which the program that made the PDF wrote the text, which is often the reading order. For the minutes, pdfplumber's text is the better start.
+Neither library is right in general. pdfplumber merges text that sits side by side into one line, as it merged the motion and its vote here; on a page set in two columns of prose, it would interleave the columns. pypdf keeps the order in which the program that made the PDF wrote the text, which is often the reading order. For the minutes, pdfplumber's text needs fewer repairs. The case study on the minutes uses pypdf anyway, with the repairs from "Cleanup Strategies", and checks the result against pdfplumber's.
 
 ### Finding Tables
 
@@ -830,271 +830,333 @@ Every name the pattern found is right, so its precision is perfect, and it found
 
 ## Case Study: Boulder City Council Minutes
 
-Boulder's City Council publishes signed minutes of its public meetings [online](https://documents.bouldercolorado.gov). These PDFs contain structured information — council member attendance, public comment speakers, agenda items, voting records — that can be extracted and analyzed.
+The City Council's signed minutes record who was at each meeting and who spoke to the council. This case study measures both in the eleven December meetings in the book's saved copies, from 2018 to 2024: how many members answered the roll call, and how many residents spoke at Open Comment. It uses pypdf. Every page of these minutes has a text layer: those from 2020 on were saved from Word, and those from 2018 and 2019 are scans with the scanner's own text layer. The repairs from "Cleanup Strategies" handle most of what pypdf breaks, and checks catch the rest.
 
-### Measuring Council Attendance
+### Reading the Minutes
+
+Read every page of every meeting once, clean it, and keep the pages by meeting date:
 
 ```{python}
-import os
-from pypdf import PdfReader
+MINUTES = [
+    "council-minutes-2018-12-04.pdf", "council-minutes-2019-12-03.pdf",
+    "council-minutes-2020-12-01.pdf", "council-minutes-2020-12-15.pdf",
+    "council-minutes-2021-12-14.pdf", "council-minutes-2022-12-01.pdf",
+    "council-minutes-2022-12-15.pdf", "council-minutes-2023-12-07.pdf",
+    "council-minutes-2023-12-21.pdf", "council-minutes-2024-12-05.pdf",
+    "council-minutes-2024-12-19.pdf",
+]
 
-# Assuming you have downloaded several PDF files into a directory
-pdf_dir = "council_minutes/"
-pdf_files = sorted([f for f in os.listdir(pdf_dir) if f.endswith(".pdf")])
+minutes_pages = {}
+for name in MINUTES:
+    meeting = name.removeprefix("council-minutes-").removesuffix(".pdf")  # the meeting's date
+    reader = PdfReader(get_saved_copy(name))
+    minutes_pages[meeting] = [clean_page_text(page.extract_text()) for page in reader.pages]
 
-def split_names(match):
-    """Split a regex match of comma-separated names into a clean list."""
-    if not match:
-        return []
-    return [name.strip() for name in match.group(1).split(",") if name.strip()]
+print(len(minutes_pages), "meetings,", sum(len(pages) for pages in minutes_pages.values()), "pages")
+# 11 meetings, 81 pages
+```
 
-def extract_attendance(pdf_path):
-    """Extract council member attendance from a meeting minutes PDF.
+### Attendance at Roll Call
+
+The roll call opens page 1 of every meeting, and the clerks have recorded it two ways. Here is the first meeting in the set, and the last:
+
+```{python}
+for meeting in ["2018-12-04", "2024-12-05"]:
+    lines = minutes_pages[meeting][0].splitlines()
+    start = next(i for i, line in enumerate(lines) if "called the meeting to order" in line)
+    print("\n".join(lines[start:start + 4]))
+    print()
+# Mayor Jones called the meeting to order at 6:04 p.m.
+# Council Members Brockett, Carlisle, Morzel, Nagle, Weaver, Yates and Young
+# were present. Council Member Grano arrived at 6:24 p.m.
+# Council Member Morzel moved to amend the agenda by removing Item 6,4'-
+#
+# Mayor Brockett called the meeting to order at 6:00 p.m.
+# Council Members present: Benjamin, Brockett, Folkerts, Marquis, Schuchard,
+# Speer, Wallach, Winer
+# Virtually present: Adams
+```
+
+Through 2020, a sentence names the members who "were present", and the mayor, who called the meeting to order, isn't in it. From 2021, a label introduces a list that can wrap onto the next line, and members who joined online get a second label, worded three ways across these meetings: "Virtually present:", "Present virtually:", and "Council Members present virtually:". pypdf adds damage of its own. In the 2021 minutes, "Speer" comes out as "S peer", and in the second meeting of December 2022, "Council" is cut into "Counci" and "l Members". The function below handles each case, and says which case each step is for:
+
+```{python}
+def split_names(names):
+    """Split a list of surnames such as "Speer, Wallach, and Winer" into a set."""
+    names = re.sub(r"\b([A-Z]) ([a-z]+)", r"\1\2", names)  # pypdf's "S peer" is "Speer"
+    return {name.strip() for name in re.split(r",|\band\b", names) if name.strip()}
+
+def roll_call(page_1):
+    """Find the members present at a meeting's roll call.
 
     Parameters
     ----------
-    pdf_path : str
-        Path to the PDF file
+    page_1 : str
+        The cleaned text of page 1 of a meeting's minutes
 
     Returns
     -------
-    dict
-        Dictionary with 'file', 'date', 'present', and 'absent' —
-        the last two are lists of council member names
+    set of str
+        The surnames of the members present, in the room or online
     """
-    reader = PdfReader(pdf_path)
+    present = set()
 
-    # Attendance is typically on the first page
-    first_page_text = reader.pages[0].extract_text()
+    # The mayor calls the meeting to order; through 2020, the list of members leaves the mayor out
+    mayor = re.search(r"Mayor (\w+) called the meeting to order", page_1)
+    if mayor:
+        present.add(mayor.group(1))
 
-    # Cheap date extraction: filenames like council_minutes_2024_01.pdf encode the year and month — parse them rather than the PDF text
-    date_match = re.search(r'(\d{4})[_-](\d{2})', os.path.basename(pdf_path))
-    meeting_date = f"{date_match.group(1)}-{date_match.group(2)}" if date_match else None
+    # 2018-2020: "Council Members Brockett, Carlisle, ... and Young were present"
+    sentence = re.search(r"Council Members ([A-Z][^:]*?)\s+were\s+present", page_1)
+    if sentence:
+        present |= split_names(sentence.group(1))
 
-    # Names follow "Present:" — capture up to "Absent:" if it appears on the same line, otherwise up to the end of the line
-    present_match = re.search(r'Present:\s*(.*?)\s*(?:Absent:|$)',
-                              first_page_text, re.IGNORECASE | re.MULTILINE)
+    # 2021-2024: "Council Members present: ...", "Virtually present: ...", "Present virtually: ..."
+    lines = page_1.splitlines()
+    for i, line in enumerate(lines):
+        label = re.match(r"(?:.*Members present(?: virtually)?|Virtually present|Present virtually):\s*(.*)", line, re.IGNORECASE)
+        if label:
+            names = label.group(1)
+            for following in lines[i + 1:]:
+                if not names.endswith(","):
+                    break  # a list that goes on to the next line ends this one with a comma
+                names += " " + following
+            present |= split_names(names)
+    return present
 
-    # Names after "Absent:" run to the end of that line
-    absent_match = re.search(r'Absent:\s*(.*)$',
-                             first_page_text, re.IGNORECASE | re.MULTILINE)
-
-    return {
-        "file": os.path.basename(pdf_path),
-        "date": meeting_date,
-        "present": split_names(present_match),
-        "absent": split_names(absent_match),
-    }
-```
-
-Be honest with yourself about what this function can and cannot do. It assumes the clerk wrote a line beginning "Present:" followed by comma-separated names — a format that holds for many Boulder minutes, but not all. Name formats vary ("Council Member Smith" versus "Smith," with or without titles), some documents separate names with semicolons or line breaks, and minutes where everyone attended often read "Absent: None," which this code will dutifully report as a council member named None. Treat the output as a first draft: spot-check it against a handful of PDFs, patch the patterns to match the formats you actually encounter, and document the failure cases you decide not to handle.
-
-### Building the Pipeline
-
-```{python}
-results = []
-for pdf_file in pdf_files:
-    try:
-        pdf_path = os.path.join(pdf_dir, pdf_file)
-        result = extract_attendance(pdf_path)
-        results.append(result)
-        print(f"Processed: {pdf_file}")
-    except Exception as e:
-        print(f"Error processing {pdf_file}: {e}")
-
-import pandas as pd
-
-df = pd.DataFrame(results)
-
-# Turn the name lists into counts for analysis
-df["n_present"] = df["present"].apply(len)
-df["n_absent"] = df["absent"].apply(len)
-print(df.head())
-```
-
-### Visualizing Trends
-
-```{python}
-import matplotlib.pyplot as plt
-
-plt.figure(figsize=(12, 5))
-plt.bar(range(len(df)), df["n_present"])
-plt.xlabel("Meeting")
-plt.ylabel("Council Members Present")
-plt.title("Boulder City Council Attendance Over Time")
-plt.tight_layout()
-plt.show()
-```
-
-### Measuring Public Comment Frequency
-
-One of the most civically valuable pieces of information buried in meeting minutes is how many members of the public showed up to speak. Public comment sections are where residents voice concerns about zoning changes, police oversight, budget priorities, and development projects. Extracting this data requires detective work: you need to identify the textual markers that signal a public comment section and then count the speakers within it.
-
-The challenge is that different municipalities format public comment sections differently, and even within the same city, the format may shift over time as clerks change or recording practices evolve. You are looking for patterns — section headers like "PUBLIC COMMENT" or "PUBLIC HEARING," followed by names or numbered items indicating individual speakers. This is the kind of work where you iterate: try a pattern on one document, inspect the results manually, refine the pattern, test it on a second document, and adjust again. Start by printing the raw text of several public comment sections to understand the format before writing any extraction code.
-
-```{python}
-def count_public_comments(text):
-    """Count the number of public comment speakers in meeting text.
-
-    Parameters
-    ----------
-    text : str
-        Full text extracted from a meeting minutes PDF
-
-    Returns
-    -------
-    int
-        Estimated number of public comment speakers
-    """
-    # Find the public comment section
-    comment_section = re.search(
-        r'(?:PUBLIC COMMENT|PUBLIC HEARING)(.*?)(?:CONSENT AGENDA|OLD BUSINESS|NEW BUSINESS)',
-        text, re.DOTALL | re.IGNORECASE
-    )
-
-    if not comment_section:
-        return 0
-
-    section_text = comment_section.group(1)
-
-    # Count speakers by looking for common patterns
-    # Pattern 1: "spoke regarding" or "spoke about" or "spoke in favor"
-    spoke_count = len(re.findall(r'spoke\s+(?:regarding|about|in|on|to)',
-                                  section_text, re.IGNORECASE))
-
-    # Pattern 2: numbered items like "1." "2." "3."
-    numbered_count = len(re.findall(r'^\s*\d+\.', section_text, re.MULTILINE))
-
-    # Return the higher count (different formats capture different patterns)
-    return max(spoke_count, numbered_count)
-```
-
-```{python}
-# Apply across all meeting files
-comment_counts = []
-for pdf_file in pdf_files:
-    pdf_path = os.path.join(pdf_dir, pdf_file)
-    try:
-        reader = PdfReader(pdf_path)
-        full_text = " ".join([p.extract_text() for p in reader.pages])
-        count = count_public_comments(full_text)
-        comment_counts.append({"file": pdf_file, "speakers": count})
-    except Exception as e:
-        comment_counts.append({"file": pdf_file, "speakers": 0})
-
-df_comments = pd.DataFrame(comment_counts)
-
-plt.figure(figsize=(12, 5))
-plt.bar(range(len(df_comments)), df_comments["speakers"])
-plt.xlabel("Meeting")
-plt.ylabel("Public Comment Speakers")
-plt.title("Public Comment Participation in Boulder City Council Meetings")
-plt.tight_layout()
-plt.show()
-```
-
-What does this data reveal? Spikes in public comment frequency often correspond to controversial agenda items — a proposed development project, a change in policing policy, or a budget reallocation. Periods of low participation may indicate either public satisfaction or public disengagement. Neither interpretation is self-evident from the data alone, which is why combining extracted counts with knowledge of the agenda (also extractable from the same PDFs) produces richer analysis.
-
-This kind of measurement is inherently imperfect. Your regex patterns will miss some speakers and occasionally count non-speakers. But even approximate counts, applied consistently across dozens of meetings, reveal patterns that would be invisible to someone reading a single set of minutes. The imprecision of PDF extraction is the price of scale — and scale is what transforms individual documents into a dataset.
-
-## Building a Reusable PDF Pipeline
-
-When you work with PDFs at scale — processing dozens or hundreds of documents from the same source — you need a structured pipeline. Here is a pattern that works for most government document collections:
-
-```{python}
-import os
-import re
-import pandas as pd
-from pypdf import PdfReader
-
-class PDFCorpusAnalyzer:
-    """A reusable pipeline for extracting and analyzing PDF corpora.
-    
-    This class encapsulates the full workflow:
-    1. Discover PDF files in a directory
-    2. Extract text from each file
-    3. Apply document-specific cleanup rules
-    4. Extract structured fields
-    5. Compile results into a DataFrame
-    """
-    
-    def __init__(self, directory, cleanup_patterns=None):
-        self.directory = directory
-        self.cleanup_patterns = cleanup_patterns or []
-        self.files = sorted([
-            f for f in os.listdir(directory) if f.lower().endswith(".pdf")
-        ])
-    
-    def extract_text(self, filepath, pages=None):
-        """Extract text from specified pages of a PDF."""
-        reader = PdfReader(filepath)
-        
-        if pages is None:
-            pages = range(len(reader.pages))
-        
-        text = ""
-        for page_num in pages:
-            if page_num < len(reader.pages):
-                text += reader.pages[page_num].extract_text() + "\n"
-        
-        # Apply cleanup patterns
-        for pattern, replacement in self.cleanup_patterns:
-            text = re.sub(pattern, replacement, text)
-        
-        return text.strip()
-    
-    def process_all(self, extract_fn):
-        """Process all PDFs using a custom extraction function.
-        
-        Parameters
-        ----------
-        extract_fn : callable
-            Function that takes (filepath, text) and returns a dict
-        """
-        results = []
-        for filename in self.files:
-            filepath = os.path.join(self.directory, filename)
-            try:
-                text = self.extract_text(filepath)
-                result = extract_fn(filepath, text)
-                result["filename"] = filename
-                results.append(result)
-            except Exception as e:
-                print(f"Error processing {filename}: {e}")
-                results.append({"filename": filename, "error": str(e)})
-        
-        return pd.DataFrame(results)
-
-# Usage example: analyze Boulder City Council meeting lengths
-def extract_meeting_info(filepath, text):
-    """Extract meeting metadata from council minutes text."""
-    # Count approximate words
-    word_count = len(text.split())
-    
-    # Try to find the meeting date (format varies by document)
-    date_match = re.search(
-        r'(January|February|March|April|May|June|July|August|'
-        r'September|October|November|December)\s+\d{1,2},\s+\d{4}',
-        text
-    )
-    
-    return {
-        "word_count": word_count,
-        "date": date_match.group(0) if date_match else None,
-        "page_count": len(PdfReader(filepath).pages)
-    }
-
-analyzer = PDFCorpusAnalyzer(
-    "council_minutes/",
-    cleanup_patterns=[
-        (r'[ \t]+', ' '),               # Collapse spaces/tabs, keep line breaks
-        (r'Page \d+ of \d+', ''),       # Remove page numbers
-    ]
+attendance = pd.DataFrame(
+    [{"meeting": meeting, "present": len(roll_call(pages[0]))} for meeting, pages in minutes_pages.items()]
 )
-
-df = analyzer.process_all(extract_meeting_info)
-print(df.head())
+print(attendance.to_string(index=False))
+#    meeting  present
+# 2018-12-04        8
+# 2019-12-03        9
+# 2020-12-01        8
+# 2020-12-15        8
+# 2021-12-14        8
+# 2022-12-01        9
+# 2022-12-15        9
+# 2023-12-07        9
+# 2023-12-21        9
+# 2024-12-05        9
+# 2024-12-19        9
 ```
+
+The counts need the check from "Checking an Extraction": a sample coded by hand. Here the sample is every meeting. Reading the eleven roll calls gives these counts, and the extraction matches all of them:
+
+```{python}
+# Counted by hand from page 1 of each meeting: members at the roll call, in the room or online, with the mayor
+by_hand = {"2018-12-04": 8, "2019-12-03": 9, "2020-12-01": 8, "2020-12-15": 8, "2021-12-14": 8,
+           "2022-12-01": 9, "2022-12-15": 9, "2023-12-07": 9, "2023-12-21": 9, "2024-12-05": 9, "2024-12-19": 9}
+mismatches = {row.meeting: (row.present, by_hand[row.meeting])
+              for row in attendance.itertuples() if row.present != by_hand[row.meeting]}
+print("meetings that differ:", mismatches)
+# meetings that differ: {}
+```
+
+Know what the number means before you use it. It counts the members who answered the roll call, so a member who arrived later counts as absent: two did, in December 2018 and December 2021. The council has nine seats, and four meetings had eight members at the roll call. The names are written as each clerk wrote them, and one member is "Swetlik" in 2019 and "Swetlick" in 2020. To follow a member across years, you would map the spellings to one person yourself.
+
+### Who Spoke at Open Comment
+
+Every meeting has an Open Comment period, in which residents speak briefly to the council, and the minutes list them: a number, a name, and "spoke on" or "spoke about" a topic. Some entries record people who signed up and then didn't speak: "did not show", "withdrew", "not present". Count the people who spoke, and leave those entries out.
+
+Each entry names a member of the public. The minutes are public records, but this analysis needs only the count, so the code below counts entries and never prints one.
+
+Finding where each entry starts took four tries, and each try shows a different way that extracted text goes wrong:
+
+1. **Lines that start with a number** find every entry from 2020 on, and 7 of the 20 in December 2018. pypdf reads the scans' text layer in its own order, and puts most of the list numbers in a column of their own, away from the names.
+2. **Lines with "spoke"**, then, as well as lines with a number. That finds the 2018 entries, but it counts some 2022 entries twice: there, pypdf breaks the name across two lines, and the second line holds the rest of the name and "spoke".
+3. **A verb after a capitalized word**: an entry starts where a line opens with a name and goes on to "spoke", "signed up", or "withdrew", and a line that opens with "spoke" continues the entry above it. This misses two entries in December 2019, where the scanner's OCR read "7." as "7 ." and "11." as "1 l.".
+4. **Numbers as the OCR misreads them**: digits, and the letters it puts in their place in these scans ("l" for 1, "J" for 3, "t" for 1), with an optional space before the period. That finds every entry in all eleven meetings.
+
+```{python}
+# An entry starts at a list number (with the scanner's misreadings of digits as l, J, or t, and "7 ." for "7."),
+# or at a line that opens with a capitalized word and goes on to a speaker's verb ("s poke" is pypdf's, in 2020)
+ENTRY_START = re.compile(r"^[\dlJt](?: ?[\dlJt])? ?\.? +[A-Z]|^[A-Z]\S* .*?\b(?:s ?poke|signed up|withdrew)\b")
+DID_NOT_SPEAK = re.compile(r"did not|withdr|not present|duplicate|moved to", re.IGNORECASE)
+
+def open_comment_entries(full_text):
+    """Split a meeting's Open Comment list into one string per entry.
+
+    Parameters
+    ----------
+    full_text : str
+        The cleaned text of every page of a meeting's minutes, joined
+
+    Returns
+    -------
+    list of str
+        One entry per person listed, with the lines it wraps onto joined
+    """
+    section = re.search(r"Open Comment(.*?)Consent Agenda", full_text, re.DOTALL | re.IGNORECASE).group(1)
+    entries = []
+    for line in section.splitlines():
+        if ENTRY_START.search(line):
+            entries.append(line)
+        elif entries:
+            entries[-1] += " " + line  # the rest of the entry above
+    return entries
+
+rows = []
+for meeting, pages in minutes_pages.items():
+    entries = open_comment_entries("\n".join(pages))
+    spoke = [entry for entry in entries if not DID_NOT_SPEAK.search(entry)]
+    rows.append({"meeting": meeting, "listed": len(entries), "spoke": len(spoke)})
+open_comment = pd.DataFrame(rows)
+print(open_comment.to_string(index=False))
+#    meeting  listed  spoke
+# 2018-12-04      20     19
+# 2019-12-03      20     19
+# 2020-12-01      15     15
+# 2020-12-15      19     15
+# 2021-12-14      16     14
+# 2022-12-01      16     12
+# 2022-12-15      16     14
+# 2023-12-07      19     18
+# 2023-12-21      11      9
+# 2024-12-05      21     19
+# 2024-12-19      20     17
+```
+
+"Moved to" marks a person who changed lists, from the room to the online list or back. In both meetings where it appears, the same person is listed again in the other list, so leaving the entry out avoids counting one person twice. "Duplicate" is the clerk's own word.
+
+Two checks support these counts. Reading the 2018 and 2019 lists by hand gives 20 entries and 19 speakers in each, as above. And the same two functions, run on pdfplumber's text of the same pages instead of pypdf's, give the same eleven counts: two tools that break text differently, agreeing after the repairs.
+
+@fig-open-comment shows the counts. They describe one part of one kind of meeting. Open Comment is not the only time residents speak: public hearings on particular items have speakers too, recorded under those items. December is one month of each year, and in 2020 and 2021 the council met online. Read the counts as a measure of who used this one channel, not of public engagement as a whole. Any interpretation of a rise or fall needs the agenda beside it: the topics, which the entries name, are the place to start.
+
+![Residents who spoke at Open Comment at the eleven December meetings, 2018–2024, counted from the minutes with pypdf. The lighter part of each bar is people listed who didn't speak: they didn't show, withdrew, or moved to the other list.](images/ch-09/open-comment.png){#fig-open-comment .lightbox fig-alt="A bar chart of speakers at Open Comment for eleven meetings from December 4, 2018 to December 19, 2024. The counts who spoke are 19, 19, 15, 15, 14, 12, 14, 18, 9, 19, and 17. Lighter segments on top of some bars show people listed who didn't speak: 1 in 2018, 1 in 2019, 4 on December 15, 2020, 2 in 2021, 4 and 2 in December 2022, 1 and 2 in December 2023, and 2 and 3 in December 2024."}
+
+## Case Study: Boulder Revenue Reports
+
+The Finance Department's year-end revenue report opens with a summary table of sales and use tax, the city's largest source of revenue, for the year and the year before. Seven reports, from 2018 to December 2024, cover eight years. This case study uses pdfplumber to build one time series from them, total sales and use tax by year from 2017 to 2024, and asks how it changed through the pandemic.
+
+### Finding the Summary Page
+
+The summary table is on page 2 of every report but one. The 2020 report opens with a letter, dated March 1, 2021, whose subject is "December 2020 Revenue Report Restatement of Earlier Period Revenues", so its summary is on page 3. Find the page by what it says, not by its number. Every summary page begins its text with the same sentence:
+
+```{python}
+REPORTS = ["revenue-report-2018.pdf", "revenue-report-2019.pdf", "revenue-report-2020.pdf",
+           "revenue-report-2021-12.pdf", "revenue-report-2022-12.pdf",
+           "revenue-report-2023-12.pdf", "revenue-report-2024-12.pdf"]
+
+def find_summary_page(pdf):
+    """Return the page of a revenue report that holds the sales and use tax summary, or None."""
+    for page in pdf.pages[:4]:
+        if "This report provides" in (page.extract_text() or ""):
+            return page
+    return None
+
+for name in REPORTS:
+    with pdfplumber.open(get_saved_copy(name)) as pdf:
+        print(name, "page", find_summary_page(pdf).page_number)
+# revenue-report-2018.pdf page 2
+# revenue-report-2019.pdf page 2
+# revenue-report-2020.pdf page 3
+# revenue-report-2021-12.pdf page 2
+# revenue-report-2022-12.pdf page 2
+# revenue-report-2023-12.pdf page 2
+# revenue-report-2024-12.pdf page 2
+```
+
+### Reading the Totals Row by Position
+
+"Finding Tables" showed that pdfplumber's table finder leaves out the totals row on the December 2024 page, because the row has no vertical rules beside it. The other reports' tables have different rules, and each would need its own settings. One row is all this question needs, though, and pdfplumber can find a row without finding the table: `search()` returns where a phrase sits on the page, and a crop of the page from the left edge to the right, as tall as that line, holds the row's words. The column headings work the same way: the two years sit side by side above the figures.
+
+```{python}
+def row_words(page, label):
+    """Return the words to the right of label, on the line where label is.
+
+    Parameters
+    ----------
+    page : pdfplumber.page.Page
+        The page to read
+    label : str
+        A regular expression for the row's label, such as "Total Sales and Use Tax"
+
+    Returns
+    -------
+    list of str
+        The row's other words, from left to right
+    """
+    found = page.search(label)[0]  # the first match: its text, and its position in points
+    line = page.crop((0, found["top"] - 1, page.width, found["bottom"] + 1))
+    return [word["text"] for word in line.extract_words() if word["x0"] > found["x1"]]
+
+def to_number(text):
+    """Turn a figure such as "$134,538,892", "(1,145,528)", or "-$1,608,698" into an int."""
+    negative = text.startswith(("(", "-"))
+    value = int(re.sub(r"[^\d]", "", text))
+    return -value if negative else value
+
+with pdfplumber.open(get_saved_copy("revenue-report-2018.pdf")) as pdf:
+    page = find_summary_page(pdf)
+    print(page.search(r"(20\d\d) +(20\d\d)")[0]["groups"])
+    print(row_words(page, "Total Sales and Use Tax"))
+# ('2017', '2018')
+# ['$134,538,892', '$140,648,710', '$6,109,818', '4.54%']
+```
+
+The row reads left to right: the earlier year's total, this year's, the change in dollars, and the change in percent. The report's own change column is a check that costs nothing: this year's total minus last year's should equal it.
+
+```{python}
+totals = []
+for name in REPORTS:
+    with pdfplumber.open(get_saved_copy(name)) as pdf:
+        page = find_summary_page(pdf)
+        earlier_year, this_year = (int(year) for year in page.search(r"(20\d\d) +(20\d\d)")[0]["groups"])
+        earlier, this, change = (to_number(figure) for figure in row_words(page, "Total Sales and Use Tax")[:3])
+    if this - earlier != change:
+        print(f"{name}: {this:,} - {earlier:,} is not {change:,}")
+    totals.append({"report": name, "year": earlier_year, "total": earlier})
+    totals.append({"report": name, "year": this_year, "total": this})
+
+totals = pd.DataFrame(totals)
+print(len(totals), "figures from", totals["report"].nunique(), "reports; every change column checks")
+# 14 figures from 7 reports; every change column checks
+```
+
+### Two Printings of the Same Year
+
+Six of the eight years are printed twice: as "this year" in one report, and as "the year before" in the next. They should agree:
+
+```{python}
+printings = totals.groupby("year")["total"].agg(["count", "min", "max"])
+twice = printings[printings["count"] == 2]
+print(twice.assign(difference=twice["max"] - twice["min"]).to_string())
+#       count        min        max  difference
+# year
+# 2018      2  140609751  140648710       38959
+# 2019      2  141954650  141954650           0
+# 2020      2  135195413  135195413           0
+# 2021      2  152302653  152302653           0
+# 2022      2  169112615  169112615           0
+# 2023      2  175517129  175517129           0
+```
+
+Five years agree to the dollar. 2018 doesn't: the 2018 report gives $140,648,710, and the 2019 report gives 2018 as $140,609,751, $38,959 less. The 2019 report doesn't say why. A later printing of a figure is usually a correction, so the series below uses each year's latest printing, and a note with the data should say so. The 2020 letter is a reminder that reports do get restated: it explains that January to November 2020 had wrongly included penalties and interest, which the December report leaves out.
+
+### The Time Series
+
+```{python}
+latest = totals.groupby("year").last()  # REPORTS runs oldest to newest, so last() is each year's latest printing
+latest["change_pct"] = (latest["total"].pct_change() * 100).round(2)
+print(latest[["total", "change_pct"]].to_string())
+#           total  change_pct
+# year
+# 2017  134538892         NaN
+# 2018  140609751        4.51
+# 2019  141954650        0.96
+# 2020  135195413       -4.76
+# 2021  152302653       12.65
+# 2022  169112615       11.04
+# 2023  175517129        3.79
+# 2024  173908431       -0.92
+```
+
+@fig-sales-use-tax shows the series. Sales and use tax fell 4.76% in 2020, rose by more than 10% in both 2021 and 2022, and was nearly flat by 2024, when it fell 0.92%. These are dollars of each year, not adjusted for inflation; prices rose faster than revenue in 2024, so in real terms the fall was larger. The checks above are what let you put the eight years side by side: every figure was read by position, every change column agreed, and the one year printed two ways is accounted for.
+
+![Total sales and use tax collected by the City of Boulder, 2017–2024, from the summary tables of its seven year-end revenue reports, read with pdfplumber, with the change from the year before above each bar. Each year uses its latest printing. Dollars of each year, not adjusted for inflation.](images/ch-09/sales-use-tax.png){#fig-sales-use-tax .lightbox fig-alt="A bar chart of total sales and use tax by year: about 134.5 million dollars in 2017, 140.6 million in 2018 (up 4.51%), 142.0 million in 2019 (up 0.96%), 135.2 million in 2020 (down 4.76%), 152.3 million in 2021 (up 12.65%), 169.1 million in 2022 (up 11.04%), 175.5 million in 2023 (up 3.79%), and 173.9 million in 2024 (down 0.92%)."}
+
+These functions fit these seven reports. The label "Total Sales and Use Tax", the sentence that opens the summary page, and the order of the row's figures are the city's choices, and the city has changed its reports before: the program that made them, the wording of the table's header, and, in the last page's monthly table, text that became a picture. When the next report changes, the checks are what will tell you. A label that isn't found raises an error, and a row read wrong fails its change column or disagrees with the next year's printing.
 
 ## Recommended Exercises
 
@@ -1183,7 +1245,7 @@ The Boulder City Council case illustrates this tension at the local level. The s
 
 ## Key Takeaways
 
-PDFs are designed for visual fidelity, not data extraction. PyPDF gives you page-level text as a starting point; string methods and regex let you clean and structure what you extract; and function abstractions let you process many documents consistently. Expect messiness — PDF extraction is reconstruction, not reading. The broader lesson connects to @sec-post-api: when institutions publish data only in PDF form, they create a practical barrier to the analysis that nominally public records are meant to enable.
+PDFs are designed for visual fidelity, not data extraction. pypdf gives you a page's text in the order it was drawn; pdfplumber gives you where each word sits, which is what a table needs; and regular expressions impose structure on what either extracts. Expect messiness — PDF extraction is reconstruction, not reading — and check every extraction: against a sample coded by hand, against a second tool, against the document's own totals, and against a second printing of the same figure. The broader lesson connects to @sec-post-api: when institutions publish data only in PDF form, they create a practical barrier to the analysis that nominally public records are meant to enable.
 
 ## Further Reading
 
