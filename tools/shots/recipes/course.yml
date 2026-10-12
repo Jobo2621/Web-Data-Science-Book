@@ -795,3 +795,22 @@ figures:
         - {n: 1, shape: brace, at: {match: '^Browser: .*\nDriver: .*$', in: '.jp-CodeCell:has-text("webdriver.Chrome()") .jp-OutputArea-output pre'}}
         - {n: 2, at: {match: '^Quotes to Scrape$', in: '.jp-CodeCell:has-text("driver.quit()") .jp-OutputArea-output pre'}}
     drifts: true        # the versions, and Jupyter's look
+
+  - id: week09-documentcloud
+    kind: capture
+    section: "week-09 slides, Soft enclosure & the infrastructure of transparency (documentcloud.png)"
+    brief: >-
+      Show the top of DocumentCloud's home page: its name and what it is for,
+      analyzing, annotating, and publishing documents. Narrow, for a column
+      35% of the slide wide. robots.txt (checked 2026-10-12) allows every
+      User-Agent except on addresses with a query string, with a 5-second
+      crawl delay; /home/ has none.
+    url: https://www.documentcloud.org/home/
+    window: [480, 600]
+    steps:
+      - wait: {text: 'DocumentCloud'}
+      - wait: {network_idle: true}
+    expect: {text: ['DocumentCloud', 'primary source documents']}
+    crop: {top: 0, height: 450, left: 0, width: 480}      # the header, the headline, and the paragraph under it
+    targets: {slides: {width: 0.35}}
+    drifts: true        # the site's own wording and look
