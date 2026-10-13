@@ -278,7 +278,8 @@ params = {
     "collapse": "digest",        # Server-side: skip consecutive identical captures
 }
 
-response = requests.get(cdx_url, params=params)
+headers = {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
+response = requests.get(cdx_url, params=params, headers=headers, timeout=60)
 data = response.json()
 
 # First row is column headers, rest is data

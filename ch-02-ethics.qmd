@@ -190,7 +190,7 @@ When your code makes requests to a web server, the server sees metadata about th
 
 ![Wikimedia's User-Agent policy, September 2026. A bot should send a User-Agent that identifies it and gives some way to contact its operator ①. The policy's example ② follows its generic format, `<client name>/<version> (<contact information>)` ③, as this book's `WebDataScience/1.0 (your-email@colorado.edu)` does.](images/ch-02/wikimedia-ua-policy_annotated.png){#fig-wikimedia-ua-policy .lightbox width="60%" fig-alt="Screenshot of Wikimedia's User-Agent policy. Marker 1: If you operate a bot, please send a User-Agent header identifying the bot, and supplying some way of contacting you, the operator. Marker 2: the example, User-Agent: CoolBot/0.0 with a web address and an email address in parentheses. Marker 3: The generic format is client name slash version, then contact information in parentheses."}
 
-Replace the default with a User-Agent that identifies you and provides contact information:
+Replace the default with a User-Agent that identifies you and provides contact information. Wherever this book writes `your-email@colorado.edu`, in this chapter and every later one, put your own address, so that a site operator who writes to it reaches you:
 
 ```{python}
 import requests

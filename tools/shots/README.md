@@ -93,7 +93,9 @@ dated record is in §9 of [the screenshot AAR](../../docs/aar/2026-09-24-screens
 - **Captions and alt text.**
   - Date the caption ("in September 2026").
   - Say what the capture setup changes that a reader would see: a first visit
-    (`first_visit: true`), or HTTP/1.1 through the proxy.
+    (`first_visit: true`), or the protocol through the proxy. That was
+    HTTP/1.1 in September 2026; on 2026-10-13 the retake of figure 5-4 came
+    over HTTP/2 (its headers start with `:scheme`), so check each take.
   - Don't claim a route the capture didn't take.
   - The pilot's alt text ran 400–433 characters, transcribing what a reader
     needs from the figure.
