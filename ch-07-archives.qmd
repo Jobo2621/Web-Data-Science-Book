@@ -231,10 +231,11 @@ def get_snapshot_stats(url, timestamp, headers=None):
     }
 
 # Compare CNN across three eras
+headers = {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
 timestamps = ["20000815", "20120815", "20240815"]
 stats = []
 for ts in timestamps:
-    result = get_snapshot_stats("www.cnn.com", ts)
+    result = get_snapshot_stats("www.cnn.com", ts, headers=headers)
     if result:
         stats.append(result)
     time.sleep(2)  # Be respectful of the Archive

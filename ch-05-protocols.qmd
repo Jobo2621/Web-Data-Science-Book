@@ -420,7 +420,7 @@ session.headers.update(
     {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
 )
 
-# Retry up to 3 times on rate limits and server errors, waiting 1s, 2s, then 4s between attempts
+# Retry up to 3 times on rate limits and server errors, waiting 0s, 2s, then 4s between attempts, or as long as a Retry-After header asks
 retries = Retry(
     total=3,
     backoff_factor=1,
