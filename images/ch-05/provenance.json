@@ -115,16 +115,16 @@
     },
     "network-headers": {
       "annotated": {
-        "annotate_sha256": "f29de77b98f7c3749e33a88c1ac8c7353e9d83256abdeea99376e51ea8de2249",
-        "pdf_sha256": "e0e73522559911ad289b4d86b7075ba05889f19fa002a3c29843b2c6dd76ef36",
-        "png_sha256": "86260fd2dc1dc1d1be10ad02911676194b9be665525adcd56dcbc6f9c646a6e7",
+        "annotate_sha256": "7a14521bbfd234d1eba9c2e469e7da8b7cf44f6ef5f281e650f119ace9ca4725",
+        "pdf_sha256": "cc7d16522014f323b7e00e23486d3f175530bc8f9fdec9869d02b28ee195ac8f",
+        "png_sha256": "5ff79d5c444429b50484f5a7f08a35c342ad328e340ac304350e42d962b499a9",
         "unit_in": 0.005058780690803163,
         "warnings": [],
         "width_in": 8.1042
       },
-      "browser": "Google Chrome for Testing 154.0.8037.57 (headed on Xvfb, Playwright 1.63.0)",
+      "browser": "Google Chrome for Testing 154.0.8037.92 (headed on Xvfb, Playwright 1.63.0)",
       "by": "tools/shots",
-      "captured": "2026-09-24T15:37:04+00:00",
+      "captured": "2026-10-13T03:08:31+00:00",
       "clip": {
         "height": 600.0,
         "width": 800.0,
@@ -136,10 +136,10 @@
       },
       "file": "network-headers.png",
       "final_url": "https://en.wikipedia.org/wiki/University_of_Colorado_Boulder",
-      "image_sha256": "3ce8da826d70b5db7edbd4a680982ecc0609d7dbe8a56a80cefc630153d508b7",
+      "image_sha256": "b5b340135b1a1079b565d686f333c1a819b8c7d74951ab3bd2aa4076e3dd41a1",
       "javascript": true,
       "kind": "capture",
-      "recipe_sha256": "ac6c8b69d4ed1202b0736c4b49bfe60dbccebcf30db6f20f30fed38c7d70cc21",
+      "recipe_sha256": "6aa8abb46c293fac56f3efc3f197326a1c790cf799021916eb696ab63cb1b6d5",
       "scale": 2,
       "size": [
         1600,
@@ -147,17 +147,17 @@
       ],
       "status": 200,
       "text": {
-        "chars": 2564,
-        "median": 28.8,
+        "chars": 2721,
+        "median": 26.4,
         "min": 26.4,
         "p20": 26.4,
         "sizes": {
-          "26.4": 1180,
-          "28.8": 1384
+          "26.4": 1386,
+          "28.8": 1335
         }
       },
       "url": "https://en.wikipedia.org/wiki/University_of_Colorado_Boulder",
-      "user_agent": "Web Data Science/v1 brian.keegan@colorado.edu",
+      "user_agent": "WebDataScience/1.0 (brian.keegan@colorado.edu)",
       "window": [
         800,
         1000

@@ -134,4 +134,4 @@ figures:
       marks:
         # In the empty right-hand end of their rows.
         - {n: 1, shape: brace, at: {devtools: {css: '.header-name', text: '^Sec-Ch-Ua', all: true}}, x: -50}
-        - {n: 2, at: {devtools: {css: '.header-value', text: '^Web Data Science'}}, x: -35, lead: false}
+        - {n: 2, at: {devtools: {css: '.header-value', text: '^WebDataScience'}}, x: -35, lead: false}

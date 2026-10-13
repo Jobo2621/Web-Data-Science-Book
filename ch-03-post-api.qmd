@@ -137,7 +137,7 @@ import requests
 import pandas as pd
 
 # Identify yourself. @sec-ethics explains why this header matters; several of these hosts answer anonymous library defaults differently than they answer a named client.
-HEADERS = {"User-Agent": "WebDataScience/1.0 (INFO 4617; you@colorado.edu)"}
+HEADERS = {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
 
 # Endpoints that ask for no key, no account, and no application.
 TARGETS = {

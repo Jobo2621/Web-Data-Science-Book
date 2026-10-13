@@ -231,10 +231,11 @@ def get_snapshot_stats(url, timestamp, headers=None):
     }
 
 # Compare CNN across three eras
+headers = {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
 timestamps = ["20000815", "20120815", "20240815"]
 stats = []
 for ts in timestamps:
-    result = get_snapshot_stats("www.cnn.com", ts)
+    result = get_snapshot_stats("www.cnn.com", ts, headers=headers)
     if result:
         stats.append(result)
     time.sleep(2)  # Be respectful of the Archive
@@ -277,7 +278,8 @@ params = {
     "collapse": "digest",        # Server-side: skip consecutive identical captures
 }
 
-response = requests.get(cdx_url, params=params)
+headers = {"User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"}
+response = requests.get(cdx_url, params=params, headers=headers, timeout=60)
 data = response.json()
 
 # First row is column headers, rest is data

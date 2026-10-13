@@ -9,7 +9,7 @@ for people: what a figure shows that is easy to miss, and what a retake needs.
 |---|---|---|---|---|
 | `element-picker.png` and `element-picker_annotated.png`, `.pdf` | capture | 2026-09-24 | https://en.wikipedia.org/wiki/University_of_Colorado_Boulder | tools/shots: Google Chrome for Testing 154.0.8037.57, 800×600 at 2× |
 | `inspector-heading.png` and `inspector-heading_annotated.png`, `.pdf` | capture | 2026-09-24 | https://en.wikipedia.org/wiki/University_of_Colorado_Boulder | tools/shots: Google Chrome for Testing 154.0.8037.57, 800×600 at 2× |
-| `network-headers.png` and `network-headers_annotated.png`, `.pdf` | capture | 2026-09-24 | https://en.wikipedia.org/wiki/University_of_Colorado_Boulder | tools/shots: Google Chrome for Testing 154.0.8037.57, 800×1000 at 2× |
+| `network-headers.png` and `network-headers_annotated.png`, `.pdf` | capture | 2026-10-13 | https://en.wikipedia.org/wiki/University_of_Colorado_Boulder | tools/shots: Google Chrome for Testing 154.0.8037.92, 800×1000 at 2× |
 | `network-requests.png` | capture | 2026-09-24 | https://en.wikipedia.org/wiki/University_of_Colorado_Boulder | tools/shots: Google Chrome for Testing 154.0.8037.57, 800×600 at 2× |
 <!-- shots:end -->
 

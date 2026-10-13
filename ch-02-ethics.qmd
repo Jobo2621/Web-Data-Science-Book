@@ -92,7 +92,7 @@ The key directives are `User-agent` (which crawler the rule applies to), `Disall
 ```{python}
 from urllib.robotparser import RobotFileParser
 
-# Raise and exception if the site sends back a 403/4
+# Stop with an HTTPError if the site answers with an error, such as a 403 or a 404, instead of parsing its error page
 response.raise_for_status()
 
 # Hand the parser text you fetched yourself, rather than calling rp.read(). The callout below explains what rp.read() does instead.
@@ -150,7 +150,7 @@ print(delay)
 wait = delay if delay is not None else 1.0  # Fall back to a polite default
 ```
 
-Two important caveats. First, `robots.txt` is a norm, not a law. Violating it is not illegal (in most jurisdictions), but it is disrespectful of the site operator's wishes and may result in your IP being blocked. Second, if a site does not have a `robots.txt` file (the request returns a 404), that means there are no crawling restrictions — not that you should crawl aggressively.
+Two important caveats. First, `robots.txt` is a norm, not a law. Violating it is not illegal (in most jurisdictions), but it is disrespectful of the site operator's wishes and may result in your IP being blocked. Second, if a site does not have a `robots.txt` file (the request returns a 404), that means there are no crawling restrictions — not that you should crawl aggressively. The parsing cell above stops on that 404 with an `HTTPError`; read it as "no file, so no rules," not as a refusal.
 
 ### Comparing robots.txt Across Platforms
 
@@ -190,13 +190,13 @@ When your code makes requests to a web server, the server sees metadata about th
 
 ![Wikimedia's User-Agent policy, September 2026. A bot should send a User-Agent that identifies it and gives some way to contact its operator ①. The policy's example ② follows its generic format, `<client name>/<version> (<contact information>)` ③, as this book's `WebDataScience/1.0 (your-email@colorado.edu)` does.](images/ch-02/wikimedia-ua-policy_annotated.png){#fig-wikimedia-ua-policy .lightbox width="60%" fig-alt="Screenshot of Wikimedia's User-Agent policy. Marker 1: If you operate a bot, please send a User-Agent header identifying the bot, and supplying some way of contacting you, the operator. Marker 2: the example, User-Agent: CoolBot/0.0 with a web address and an email address in parentheses. Marker 3: The generic format is client name slash version, then contact information in parentheses."}
 
-Replace the default with a User-Agent that identifies you and provides contact information:
+Replace the default with a User-Agent that identifies you and provides contact information. Wherever this book writes `your-email@colorado.edu`, in this chapter and every later one, put your own address, so that a site operator who writes to it reaches you:
 
 ```{python}
 import requests
 
 headers = {
-    "User-Agent": "WebDataScience/1.0 (INFO 4617; brian.keegan@colorado.edu)"
+    "User-Agent": "WebDataScience/1.0 (your-email@colorado.edu)"
 }
 
 response = requests.get("https://example.com", headers=headers)
@@ -378,7 +378,7 @@ The aftermath of Cambridge Analytica created a chilling effect that extended far
 
 ## Common Issues to Debug
 
-- **`robots.txt` not found (404)**: This means there are no crawling restrictions, not that the site is blocking you.
+- **`robots.txt` not found (404)**: `raise_for_status()` stops the parsing cell with `HTTPError: 404`. The site has no `robots.txt`, so it states no crawling restrictions; it is not blocking you.
 - **Every `can_fetch()` returns `False`, including for pages you know are allowed**: You probably called `RobotFileParser.read()`. It fetches with `urllib`'s default User-Agent, many sites answer that with `403`, and `read()` silently records a 403 as "disallow everything." Fetch the file yourself with a real User-Agent and use `rp.parse(text.splitlines())` instead. Check for this before you conclude a site bans crawlers.
 - **Requests blocked despite `robots.txt` allowing access**: Some sites use additional bot detection (CAPTCHAs, JavaScript challenges, behavioral analysis) beyond `robots.txt`.
 - **403 Forbidden with a responsible User-Agent**: The site may be blocking all automated access regardless of your headers. Respect this.

@@ -123,10 +123,10 @@ In this order:
 4. **Keep new work on the record.** Toolkit M4 is done ([plan](plans/2026-09-24-screenshot-toolkit.md), §8). A copy made from now on goes through `sync`, so `synced` covers it. A figure whose caption or paragraph rests on a count gains `evidence:` as it is next retaken; chapter 7's two are the pattern.
 5. **Align the chapters' User-Agent strings** with `WebDataScience/1.0 (your-email@colorado.edu)`, after the Friday review.
    - Students' #88 and #93 add one to chapter 4's requests.
-   - Chapter 7's three top-level requests (Availability, the raw capture, CDX) send none, and week 7's deck copies them. Change the chapter and the deck together, so the slides match the notebook.
+   - Chapter 7's three top-level requests (Availability, the raw capture, CDX) still send none, and week 7's deck copies them. Change the chapter and the deck together, so the slides match the notebook.
    - The course's week 11 deck calls keyed APIs (Census, FRED, FEC) without one. Week 1's setup handout and week 10's deck already send one (course #56 fixed week 1), and course #69 puts the reader's address in week 10's, as chapter 10 now has.
-   - Chapter 2's rate-limiting example (`ch-02-ethics.qmd`, line 196) sends `brian.keegan@colorado.edu`, so a student who runs it identifies as the maintainer. It should take the reader's address, as chapter 10's now does. Six open pull requests touch chapter 2 (#50, #54, #56, #59, #63, #79), so it waits for the review.
-   - Figure 5.4 (`network-headers`, chapter 5's request headers) shows the old string; its caption calls it the identification the book's screenshots are taken with. A retake shows the new one. Fourteen open pull requests touch chapter 5, so the retake, caption, and alt text wait for the review.
+   - Chapters 2 and 3 now send the reader's address, at the maintainer's request on 2026-10-13: chapter 2's "Responsible Request Headers" example had sent `brian.keegan@colorado.edu`, and chapter 3's `HEADERS` had the placeholder `(INFO 4617; you@colorado.edu)`. Chapter 7's `get_snapshot_stats()` loop now passes a User-Agent too.
+   - Figure 5.4 (`network-headers`) was retaken on 2026-10-13 and shows `WebDataScience/1.0 (brian.keegan@colorado.edu)`; its caption and alt text say so, and that the capture came over HTTP/2.
    - Chapter 6's Oscars example now sends `WebDataScience/1.0 (your-email@colorado.edu)`, at the maintainer's request on 2026-10-06; oscars.org answered it with 200, and the `requests` default and a Chrome-like string with 403. Week 6's Oscars handout, in the course repository, still sends the old `Web Data Science /v1 brian.keegan@colorado.edu`.
 6. **Chapter 4's Step 5**, at the Friday review. It sends students to Open-Meteo after Step 1 taught them to check robots.txt, whose file there disallows every path; a sentence could point back to chapter 2's distinction between crawlers and API clients. Students' #86 revises Step 5, so raise it in #86's review: if #86 adds the sentence, no later pull request is needed.
 7. **Computed outputs.** If they are adopted, run the [plan](plans/2026-09-24-computed-outputs.md)'s M0 pilot on chapter 5.
@@ -179,7 +179,7 @@ Each item has a recommendation, made on 2026-09-25; the decision is the maintain
 - After a context compaction, the session no longer knows which files it has read. Read a file before you edit it (2026-10-06 AAR, P2-2).
 - Don't run `playwright install`. The toolkit uses Chrome for Testing through `tools/shots/bootstrap.sh`, and the container already has Chromium.
 - Before a capture, read the "Field notes" in `tools/shots/README.md`, and add to them what the capture teaches.
-- HTTPS goes through the session's proxy. Never turn off TLS verification. Captures through the proxy use HTTP/1.1, and captions that show protocol details say so.
+- HTTPS goes through the session's proxy. Never turn off TLS verification. Captures through the proxy used HTTP/1.1 in September; figure 5-4's retake on 2026-10-13 came over HTTP/2. Captions that show protocol details say which, so check each take.
 - Quarto isn't installed system-wide. Download a release into the session's scratch directory. The computed-outputs tests used 1.10.18.
 - The clone may be shallow. Before auditing what changed and when, run `git fetch --unshallow origin`: a shallow clone shows its oldest commit as the whole repository arriving at once.
 - **Merging several pull requests that touch the same files.**
