@@ -3,12 +3,12 @@ and one picture of a table with the words Tesseract read on it.
 
     python tools/shots/renders/ch-09.py OUTDIR
 
-    python tools/shots/renders/ch-09.py OUTDIR open-comment sales-use-tax   # only these
+    python tools/shots/renders/ch-09.py OUTDIR sales-use-tax   # only this one
 
-Reads the saved copies in data/ch-09/ and writes six PNGs to OUTDIR, each 1600
+Reads the saved copies in data/ch-09/ and writes five PNGs to OUTDIR, each 1600
 pixels wide: 2 pixels per CSS pixel of an 800-pixel frame, as the recipes in
-tools/shots/recipes/ch-09.yml say. The last two are charts that matplotlib draws
-from what the chapter's case studies count. Run it in the webdata environment, which has
+tools/shots/recipes/ch-09.yml say. The last is a chart that matplotlib draws
+from what the chapter's revenue-report case study reads. Run it in the webdata environment, which has
 pdfplumber, pypdf, pytesseract, and Tesseract, then import each one
 (tools/shots/README.md, "Hand captures"), naming the program that drew it:
 
@@ -104,38 +104,6 @@ def ocr_confidence(out):
     return f"ocr-confidence.png: {boxed} words boxed, {low} below 80"
 
 
-# The case studies' code, as in the chapter ("Case Study: Boulder City Council Minutes")
-MINUTES = ["2018-12-04", "2019-12-03", "2020-12-01", "2020-12-15", "2021-12-14", "2022-12-01",
-           "2022-12-15", "2023-12-07", "2023-12-21", "2024-12-05", "2024-12-19"]
-ENTRY_START = re.compile(r"^[\dlJt](?: ?[\dlJt])? ?\.? +[A-Z]|^[A-Z]\S* .*?\b(?:s ?poke|signed up|withdrew)\b")
-DID_NOT_SPEAK = re.compile(r"did not|withdr|not present|duplicate|moved to", re.IGNORECASE)
-
-
-def clean_page_text(raw_text):
-    """The chapter's clean_page_text(), from "Cleanup Strategies"."""
-    text = re.sub(r'^P ?age \d+[ \t]*$', '', raw_text, flags=re.MULTILINE)
-    text = re.sub(r'\b([A-Z]{1,2})\n(?=[A-Za-z])', r'\1', text)
-    text = re.sub(r'[ \t]+', ' ', text)
-    return '\n'.join(line.strip() for line in text.split('\n') if line.strip())
-
-
-def open_comment_counts():
-    """(meeting, listed, spoke) for each December meeting, as the chapter counts them."""
-    counts = []
-    for meeting in MINUTES:
-        reader = PdfReader(DATA / f"council-minutes-{meeting}.pdf")
-        text = "\n".join(clean_page_text(page.extract_text()) for page in reader.pages)
-        section = re.search(r"Open Comment(.*?)Consent Agenda", text, re.DOTALL | re.IGNORECASE).group(1)
-        entries = []
-        for line in section.splitlines():
-            if ENTRY_START.search(line):
-                entries.append(line)
-            elif entries:
-                entries[-1] += " " + line
-        counts.append((meeting, len(entries), sum(not DID_NOT_SPEAK.search(e) for e in entries)))
-    return counts
-
-
 def chart_axes():
     """A figure 1600 by 800 pixels, with text that comes to 16 CSS pixels and more in an 800-pixel frame."""
     import matplotlib
@@ -145,25 +113,6 @@ def chart_axes():
     fig, ax = plt.subplots(figsize=(8, 4), dpi=200)
     ax.spines[["top", "right"]].set_visible(False)
     return fig, ax
-
-
-def open_comment(out):
-    """Residents who spoke at Open Comment, with the people listed who didn't speak above them."""
-    counts = open_comment_counts()
-    fig, ax = chart_axes()
-    x = range(len(counts))
-    spoke = [s for _, _, s in counts]
-    others = [n - s for _, n, s in counts]
-    ax.bar(x, spoke, color="#1f4e79", label="spoke")
-    ax.bar(x, others, bottom=spoke, color="#9ecae1", label="listed, didn't speak")
-    for i, s in enumerate(spoke):
-        ax.text(i, s / 2, str(s), ha="center", va="center", color="white", fontsize=12)
-    ax.set_xticks(list(x), [m.replace("-12-", "\nDec ") for m, _, _ in counts], fontsize=11)
-    ax.set_ylabel("People at Open Comment")
-    ax.legend(frameon=False, ncol=2, loc="lower center", bbox_to_anchor=(0.5, 1.0))
-    fig.tight_layout()
-    fig.savefig(out / "open-comment.png")
-    return f"open-comment.png: spoke {spoke}"
 
 
 def sales_use_tax(out):
@@ -198,7 +147,7 @@ def sales_use_tax(out):
 
 FIGURES = {"pdf-objects": pdf_objects, "two-exhibit-3s": two_exhibit_3s,
            "missing-totals-row": missing_totals_row, "ocr-confidence": ocr_confidence,
-           "open-comment": open_comment, "sales-use-tax": sales_use_tax}
+           "sales-use-tax": sales_use_tax}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or any(name not in FIGURES for name in sys.argv[2:]):

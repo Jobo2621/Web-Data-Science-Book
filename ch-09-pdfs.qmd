@@ -955,7 +955,7 @@ Every name the pattern found is right, so its precision is perfect, and it found
 
 ## Case Study: Boulder City Council Minutes
 
-The City Council's signed minutes record who was at each meeting and who spoke to the council. This case study measures both in the eleven December meetings in the book's saved copies, from 2018 to 2024: how many members answered the roll call, and how many residents spoke at Open Comment. It uses pypdf. Every page of these minutes has a text layer: those from 2020 on were saved from Word, and those from 2018 and 2019 are scans with the scanner's own text layer. The repairs from "Cleanup Strategies" handle most of what pypdf breaks, and checks catch the rest.
+The City Council's signed minutes record who was at each meeting. This case study measures attendance in the eleven December meetings in the book's saved copies, from 2018 to 2024: how many members answered the roll call. It uses pypdf. Every page of these minutes has a text layer: those from 2020 on were saved from Word, and those from 2018 and 2019 are scans with the scanner's own text layer. The repairs from "Cleanup Strategies" handle most of what pypdf breaks, and checks catch the rest.
 
 ### Reading the Minutes
 
@@ -1098,81 +1098,6 @@ print("meetings that differ:", mismatches)
 ```
 
 Know what the number means before you use it. It counts the members who answered the roll call, so a member who arrived later counts as absent: two did, in December 2018 and December 2021. The council has nine seats, and four meetings had eight members at the roll call. The names are written as each clerk wrote them, and one member is "Swetlik" in 2019 and "Swetlick" in 2020. To follow a member across years, you would map the spellings to one person yourself.
-
-### Who Spoke at Open Comment
-
-Every meeting has an Open Comment period, in which residents speak briefly to the council, and the minutes list them: a number, a name, and "spoke on" or "spoke about" a topic. Some entries record people who signed up and then didn't speak: "did not show", "withdrew", "not present". Count the people who spoke, and leave those entries out.
-
-Each entry names a member of the public. The minutes are public records, but this analysis needs only the count, so the code below counts entries and never prints one.
-
-Finding where each entry starts took four tries, and each try shows a different way that extracted text goes wrong:
-
-1. **Lines that start with a number** find every entry from 2020 on, and 7 of the 20 in December 2018. pypdf reads the scans' text layer in its own order, and puts most of the list numbers in a column of their own, away from the names.
-2. **Lines with "spoke"**, then, as well as lines with a number. That finds the 2018 entries, but it counts some 2022 entries twice: there, pypdf breaks the name across two lines, and the second line holds the rest of the name and "spoke".
-3. **A verb after a capitalized word**: an entry starts where a line opens with a name and goes on to "spoke", "signed up", or "withdrew", and a line that opens with "spoke" continues the entry above it. This misses two entries in December 2019, where the scanner's OCR read "7." as "7 ." and "11." as "1 l.".
-4. **Numbers as the OCR misreads them**: digits, and the letters it puts in their place in these scans ("l" for 1, "J" for 3, "t" for 1), with an optional space before the period. That finds every entry in all eleven meetings.
-
-```{python}
-# An entry starts at a list number (with the scanner's misreadings of digits as l, J, or t, and "7 ." for "7."),
-# or at a line that opens with a capitalized word and goes on to a speaker's verb ("s poke" is pypdf's, in 2020)
-ENTRY_START = re.compile(r"^[\dlJt](?: ?[\dlJt])? ?\.? +[A-Z]|^[A-Z]\S* .*?\b(?:s ?poke|signed up|withdrew)\b")
-DID_NOT_SPEAK = re.compile(r"did not|withdr|not present|duplicate|moved to", re.IGNORECASE)
-
-def open_comment_entries(full_text):
-    """Split a meeting's Open Comment list into one string per entry.
-
-    Parameters
-    ----------
-    full_text : str
-        The cleaned text of every page of a meeting's minutes, joined
-
-    Returns
-    -------
-    list of str
-        One entry per person listed, with the lines it wraps onto joined
-    """
-    # The text between the "Open Comment" heading and the next item, "Consent Agenda"
-    section = re.search(r"Open Comment(.*?)Consent Agenda", full_text, re.DOTALL | re.IGNORECASE).group(1)
-    entries = []
-    for line in section.splitlines():
-        if ENTRY_START.search(line):
-            entries.append(line)       # a new entry starts here
-        elif entries:
-            entries[-1] += " " + line  # the rest of the entry above
-    return entries
-
-rows = []
-for meeting, pages in minutes_pages.items():
-    entries = open_comment_entries("\n".join(pages))  # all of the meeting's pages, as one text
-    # Count the entries that don't say the person didn't speak
-    spoke = 0
-    for entry in entries:
-        if not DID_NOT_SPEAK.search(entry):
-            spoke += 1
-    rows.append({"meeting": meeting, "listed": len(entries), "spoke": spoke})
-open_comment = pd.DataFrame(rows)
-print(open_comment.to_string(index=False))
-#    meeting  listed  spoke
-# 2018-12-04      20     19
-# 2019-12-03      20     19
-# 2020-12-01      15     15
-# 2020-12-15      19     15
-# 2021-12-14      16     14
-# 2022-12-01      16     12
-# 2022-12-15      16     14
-# 2023-12-07      19     18
-# 2023-12-21      11      9
-# 2024-12-05      21     19
-# 2024-12-19      20     17
-```
-
-"Moved to" marks a person who changed lists, from the room to the online list or back. In both meetings where it appears, the same person is listed again in the other list, so leaving the entry out avoids counting one person twice. "Duplicate" is the clerk's own word.
-
-Two checks support these counts. Reading the 2018 and 2019 lists by hand gives 20 entries and 19 speakers in each, as above. And the same two functions, run on pdfplumber's text of the same pages instead of pypdf's, give the same eleven counts: two tools that break text differently, agreeing after the repairs.
-
-@fig-open-comment shows the counts. They describe one part of one kind of meeting. Open Comment is not the only time residents speak: public hearings on particular items have speakers too, recorded under those items. December is one month of each year, and in 2020 and 2021 the council met online. Read the counts as a measure of who used this one channel, not of public engagement as a whole. Any interpretation of a rise or fall needs the agenda beside it: the topics, which the entries name, are the place to start.
-
-![Residents who spoke at Open Comment at the eleven December meetings, 2018–2024, counted from the minutes with pypdf. The lighter part of each bar is people listed who didn't speak: they didn't show, withdrew, or moved to the other list.](images/ch-09/open-comment.png){#fig-open-comment .lightbox fig-alt="A bar chart of speakers at Open Comment for eleven meetings from December 4, 2018 to December 19, 2024. The counts who spoke are 19, 19, 15, 15, 14, 12, 14, 18, 9, 19, and 17. Lighter segments on top of some bars show people listed who didn't speak: 1 in 2018, 1 in 2019, 4 on December 15, 2020, 2 in 2021, 4 and 2 in December 2022, 1 and 2 in December 2023, and 2 and 3 in December 2024."}
 
 ## Case Study: Boulder Revenue Reports
 
@@ -1355,15 +1280,15 @@ pip install docling "markitdown[pdf]"
 
 | Tool | Made by | Kind | Runs on a laptop without a GPU | License (code / model) |
 |---|---|---|---|---|
-| MarkItDown | Microsoft | Text-layer converter | Yes | MIT |
-| Docling | IBM Research; LF AI & Data | Pipeline | Yes | MIT / varies by model |
-| Marker | Datalab | Pipeline with a vision model | Partly (`--mode fast`) | Apache-2.0 / modified OpenRAIL-M |
-| MinerU | OpenDataLab | Pipeline, with a vision model in its higher tiers | Its basic tier | Its own license |
-| olmOCR | Ai2 | Vision-language model, 7B | No (NVIDIA GPU) | Apache-2.0 / Apache-2.0 |
-| DeepSeek-OCR | DeepSeek | Vision-language model, about 3B | No (NVIDIA GPU) | MIT / MIT |
-| Chandra | Datalab | Vision-language model, about 5B | No, in practice | Apache-2.0 / modified OpenRAIL-M |
-| Mistral OCR | Mistral AI | Hosted service | Runs on Mistral's servers | Proprietary |
-| Pandoc | John MacFarlane and contributors | Format converter; reads no PDFs | Yes | GPL-2.0 |
+| [MarkItDown](https://github.com/microsoft/markitdown) | Microsoft | Text-layer converter | Yes | MIT |
+| [Docling](https://docling.ai/) | IBM Research; LF AI & Data | Pipeline | Yes | MIT / varies by model |
+| [Marker](https://github.com/datalab-to/marker) | Datalab | Pipeline with a vision model | Partly (`--mode fast`) | Apache-2.0 / modified OpenRAIL-M |
+| [MinerU](https://opendatalab.github.io/MinerU/) | OpenDataLab | Pipeline, with a vision model in its higher tiers | Its basic tier | Its own license |
+| [olmOCR](https://github.com/allenai/olmocr) | Ai2 | Vision-language model, 7B | No (NVIDIA GPU) | Apache-2.0 / Apache-2.0 |
+| [DeepSeek-OCR](https://github.com/deepseek-ai/DeepSeek-OCR) | DeepSeek | Vision-language model, about 3B | No (NVIDIA GPU) | MIT / MIT |
+| [Chandra](https://github.com/datalab-to/chandra) | Datalab | Vision-language model, about 5B | No, in practice | Apache-2.0 / modified OpenRAIL-M |
+| [Mistral OCR](https://docs.mistral.ai/studio/document-processing/basic_ocr) | Mistral AI | Hosted service | Runs on Mistral's servers | Proprietary |
+| [Pandoc](https://pandoc.org/) | John MacFarlane and contributors | Format converter; reads no PDFs | Yes | GPL-2.0 |
 
 The table reflects each project's own pages in October 2026. The field moves quickly: check a tool's current version and license before you rely on it. The models' licenses matter as well as the code's. Datalab's models, for instance, are free to use only below a revenue threshold.
 

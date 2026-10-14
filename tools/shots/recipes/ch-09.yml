@@ -122,30 +122,6 @@ figures:
       text_px: 20          # the table's figures, in an 800-pixel frame
     window: [800, 233]
 
-  - id: open-comment
-    kind: render
-    mode: hand
-    section: "Case Study: Boulder City Council Minutes"
-    brief: >-
-      Chart the chapter's count of residents who spoke at Open Comment at the
-      eleven December meetings, 2018–2024, as stacked bars: who spoke, and
-      above it, the people listed who didn't (didn't show, withdrew, moved to
-      the other list). Counts only; no name appears.
-    url: https://documents.bouldercolorado.gov/WebLink/Browse.aspx?id=194345&dbid=0&repo=LF8PROD2
-    hand:
-      why: >-
-        matplotlib draws it from counts that the chapter's pypdf code makes
-        from the saved minutes; no browser is involved
-      steps: >-
-        Run `python tools/shots/renders/ch-09.py OUTDIR open-comment`, which
-        reads the eleven data/ch-09/council-minutes-2018-12-04.pdf to
-        council-minutes-2024-12-19.pdf (hashes in data/ch-09/manifest.csv),
-        counts each Open Comment list with the chapter's open_comment_entries()
-        rules, and writes OUTDIR/open-comment.png, 1600 by 800 pixels. Import
-        it with --tool naming matplotlib's and pypdf's versions.
-      text_px: 16          # tick labels at 11 points and 200 dpi, in an 800-pixel frame
-    window: [800, 400]
-
   - id: sales-use-tax
     kind: render
     mode: hand

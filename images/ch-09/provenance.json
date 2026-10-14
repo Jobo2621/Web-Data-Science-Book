@@ -89,50 +89,6 @@
         233
       ]
     },
-    "open-comment": {
-      "by": "Claude Code",
-      "captured": "2026-10-12",
-      "clip": {
-        "height": 400.0,
-        "width": 800.0,
-        "x": 0.0,
-        "y": 0.0
-      },
-      "crop": {
-        "window": true
-      },
-      "file": "open-comment.png",
-      "final_url": null,
-      "image_sha256": "3e1a38a6fff7ef1931c79008fca7173ab9368c180db6a8e8f086d14d15ddb6b5",
-      "imported": "2026-10-12T21:14:27+00:00",
-      "kind": "render",
-      "method": "rendered with matplotlib 3.11.2 with pypdf 6.20.1; imported by tools/shots",
-      "raw": {
-        "sha256": "c4a14b484afaf6cc33dde34b7caee0e65d7e40fd50e53e0001a425a1a08523b4",
-        "size": [
-          1600,
-          800
-        ]
-      },
-      "recipe_sha256": "353afa8d71a29fbadaef2752a14485d00ef6eb787adb0f4e21268ad149dc73f3",
-      "redacted": [],
-      "scale": 2,
-      "size": [
-        1600,
-        800
-      ],
-      "status": null,
-      "text": {
-        "declared": 16,
-        "p20": 32
-      },
-      "tool": "matplotlib 3.11.2 with pypdf 6.20.1",
-      "url": "https://documents.bouldercolorado.gov/WebLink/Browse.aspx?id=194345&dbid=0&repo=LF8PROD2",
-      "window": [
-        800,
-        400
-      ]
-    },
     "pdf-objects": {
       "by": "Claude Code",
       "captured": "2026-10-06",
