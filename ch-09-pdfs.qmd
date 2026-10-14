@@ -78,6 +78,30 @@ print(report_2024, f"{report_2024.stat().st_size:,} bytes")
 
 The files land in a `pdfs` folder next to your notebook. On Windows, the path prints with a backslash.
 
+### Installing pypdf and pdfplumber
+
+The chapter reads PDFs with two libraries, pypdf and pdfplumber, starting in the next section. Chapter 1's `webdata` environment has both. Anaconda as it comes has neither, and neither does a `webdata` made before October 2026. In either case, `import pdfplumber` stops with `ModuleNotFoundError`. Run this cell once:
+
+```{python}
+%conda install -y -c conda-forge pypdf pdfplumber
+```
+
+It installs both from conda-forge into the Python that runs this notebook, whichever environment that is. pdfplumber brings the libraries it is built on, among them pdfminer.six. The cell takes a minute or two. It worked if one of its last lines is `Executing transaction: done`, or, if both were there already, `All requested packages already installed`. Then restart the kernel (**Kernel → Restart Kernel…**), and run the cell under "This Chapter's Files" again, since a restart forgets `get_saved_copy()`.
+
+From a terminal, the same install is `conda install -c conda-forge pypdf pdfplumber`, typed where the environment you use is active: after `conda activate webdata`, or where the prompt shows `(base)`.
+
+To check, import both and print their versions:
+
+```{python}
+import pypdf
+import pdfplumber
+
+print("pypdf", pypdf.__version__, "| pdfplumber", pdfplumber.__version__)
+# pypdf 6.20.1 | pdfplumber 0.11.10
+```
+
+Newer versions are fine. The chapter's outputs come from these two.
+
 ## What's Inside a PDF
 
 A PDF page is a list of drawing instructions, which the format calls a *content stream*. Three kinds of things get drawn:
@@ -308,7 +332,7 @@ This code fits Laserfiche WebLink portals, and this one in particular: the folde
 pypdf reads a PDF's objects and runs each page's drawing instructions from first to last, writing out characters in the order they are drawn. It is written in Python alone, so it installs anywhere, and it is the first tool to try on a page with a text layer. The minutes of December 5, 2024 were written in Word and saved as PDF, and every page has characters:
 
 ```{python}
-# pypdf is in webdata (chapter 1); an older environment adds it with: conda install -c conda-forge pypdf
+# installed under "Installing pypdf and pdfplumber", above
 from pypdf import PdfReader
 
 minutes_2024 = PdfReader(get_saved_copy("council-minutes-2024-12-05.pdf"))
@@ -461,7 +485,6 @@ For a thorough introduction to regular expressions — the pattern-matching tool
 pdfplumber, which is built on the pdfminer.six library, starts from where each character ends up rather than the order in which it was drawn. It groups characters into words when the gap between them is under 3 points (its `x_tolerance`), and words into lines when their tops line up (`y_tolerance`). On the same page of the December 5 minutes:
 
 ```{python}
-# pdfplumber is in webdata (chapter 1); an older environment adds it with: conda install -c conda-forge pdfplumber
 with pdfplumber.open(get_saved_copy("council-minutes-2024-12-05.pdf")) as pdf:
     for line in pdf.pages[0].extract_text().splitlines()[:11]:
         print(line)
