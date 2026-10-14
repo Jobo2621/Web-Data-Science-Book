@@ -679,6 +679,23 @@ print(text_rows[7][3:8])                     # a data row: the year and its firs
 
 The text strategy finds columns where words line up, and the data rows come out clean. The header doesn't: where its words don't line up with the figures below, the column boundaries cut through them, giving "YTD T" and "axable Sales S". Again, name the columns by hand.
 
+**The table settings.** `find_tables()`, `extract_table()`, and `extract_tables()` all take the same dictionary of settings, and any setting you leave out keeps its default. The ones you are most likely to change, with their defaults in pdfplumber 0.11:
+
+- **`vertical_strategy` and `horizontal_strategy`** (both `"lines"`) say where column and row boundaries come from:
+  - `"lines"`: the page's rules and the sides of its rectangles;
+  - `"lines_strict"`: rules only, ignoring rectangles, such as shaded backgrounds;
+  - `"text"`: words that line up;
+  - `"explicit"`: positions you give.
+- **`explicit_vertical_lines` and `explicit_horizontal_lines`** (none): the positions, in points, for the `"explicit"` strategy, as the fix above used for the columns. They can also add boundaries to the ones another strategy finds.
+- **`snap_tolerance`** (3 points): parallel rules closer than this are moved to one position, so that a border drawn twice, slightly apart, counts once. `snap_x_tolerance` and `snap_y_tolerance` set it for one direction.
+- **`join_tolerance`** (3 points): pieces of a rule whose ends are this close are joined into one, so that a border drawn in segments counts as a single line.
+- **`edge_min_length`** (3 points): rules shorter than this are dropped before the grid is built, which leaves out underlines and tick marks.
+- **`intersection_tolerance`** (3 points): how close a horizontal and a vertical rule must come to count as crossing, and so to make the corner of a cell.
+- **`min_words_vertical`** (3) and **`min_words_horizontal`** (1): for the `"text"` strategy, how many words must line up to make a column boundary or a row boundary. Raise `min_words_vertical` when a short run of aligned words makes a column that isn't there.
+- **`text_x_tolerance`** and **`text_y_tolerance`** (3 points each): for the `"text"` strategy, how far apart letters can be and still count as one word, and how far up or down and still count as one line.
+
+To see what a set of settings finds, draw it: `page.to_image().debug_tablefinder(settings)` outlines the cells and marks the crossings, as in @fig-missing-totals-row. pdfplumber's documentation lists every setting, with more on each: [Table-extraction settings](https://github.com/jsvine/pdfplumber#table-extraction-settings).
+
 ## When There Is No Text Layer: OCR
 
 *Optical character recognition* (OCR) turns a picture of text into characters. An OCR engine finds the parts of a page that hold text, splits them into lines and words, and recognizes each character from its shape, using a model of the language to settle close calls. It works best on sharp, straight, high-contrast images of at least 300 dots per inch. [Tesseract](https://github.com/tesseract-ocr/tesseract), an engine that Hewlett-Packard built between 1985 and 1994, partly in Greeley, Colorado, and that Google developed from 2006, is the standard open-source choice. `pytesseract` runs Tesseract from Python; both were installed under "Installing pypdf, pdfplumber, and pytesseract", at the start of the chapter.
