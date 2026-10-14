@@ -613,39 +613,49 @@ The header still comes out in pieces. It is three rows deep, with merged cells t
 ```{python}
 import pandas as pd
 
-def summary_frame(rows, columns):
-    """Turn the rows of the revenue summary table into a DataFrame.
+def summary_frame(rows, columns, label="source"):
+    """Turn the rows of a table of labeled figures into a DataFrame.
 
     Parameters
     ----------
     rows : list of lists
         The table, as pdfplumber's extract() or extract_table() returns it
     columns : dict
-        Each column's name and its position in a row, such as {"source": 1, "ytd_2023": 3}
+        Each column's name and its position in a row, such as {"source": 1, "ytd_2023": 3};
+        every column but the label holds figures
+    label : str
+        The name, in columns, of the column that holds each row's label
 
     Returns
     -------
     pandas.DataFrame
-        One row per labeled row with a 2023 figure; header rows and section titles are left out
+        One row for each row with a label and a first figure; header rows and section titles are left out
     """
+    # The figure columns: every column but the label, in the order columns lists them
+    figure_columns = []
+    for name in columns:
+        if name != label:
+            figure_columns.append(name)
+    first_figure = figure_columns[0]
+
     records = []
     for row in rows:
-        # Keep a row only if it has a label and a 2023 figure; that leaves out headers and section titles
-        if not row[columns["source"]] or not row[columns["ytd_2023"]]:
+        # Keep a row only if it has a label and a first figure; that leaves out headers and section titles
+        if not row[columns[label]] or not row[columns[first_figure]]:
             continue
         record = {}
         for name, position in columns.items():
             record[name] = row[position]  # the cell in that column
         records.append(record)
     frame = pd.DataFrame(records)
-    frame["source"] = frame["source"].str.replace("\n", " ")  # a label that wraps becomes one line
-    for name in columns:
-        if name != "source":
-            # Remove dollar signs, commas, and percent signs, then read what is left as a number
-            frame[name] = pd.to_numeric(frame[name].str.replace(r"[$,%]", "", regex=True))
+    frame[label] = frame[label].str.replace("\n", " ")  # a label that wraps becomes one line
+    for name in figure_columns:
+        # Remove dollar signs, commas, and percent signs, then read what is left as a number
+        frame[name] = pd.to_numeric(frame[name].str.replace(r"[$,%]", "", regex=True))
     return frame
 
-# Where each column sits in fixed_rows: the label is the second cell, 2023 the fourth, and so on
+# Where each column sits in fixed_rows: the label is the second cell, 2023 the fourth, and so on.
+# For another table, name its own columns and positions; the label column defaults to "source"
 summary_df = summary_frame(fixed_rows, {"source": 1, "ytd_2023": 3, "ytd_2024": 4, "change": 5, "pct_change": 7})
 report.close()  # done with the December 2024 report's pages
 print(summary_df[["source", "ytd_2024"]].to_string(index=False))
