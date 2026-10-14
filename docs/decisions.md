@@ -2,7 +2,20 @@
 
 Standing decisions for the book and its tools, newest first. Each entry gives the decision, the reason, and where the decision is written or enforced. Entries are never deleted. When a decision is replaced, it is marked *superseded*, with a link to the entry that replaces it. Proposals that nobody has decided yet are listed in [`handoff.md`](handoff.md), not here.
 
-## 2026-10-06 · `webdata` adds OCR: `ocrmypdf` and `pytesseract`
+## 2026-10-14 · `webdata` installs `tesseract` directly, not `ocrmypdf`
+
+**Decision.**
+- Chapter 1's command lists `pytesseract tesseract` in place of `ocrmypdf pytesseract`, and so do its copies: the README, and the course's setup handout and its catch-up line.
+- Chapter 9's install cell installs `pypdf pdfplumber pytesseract tesseract`. OCRmyPDF moves to chapter 9's "Appendix: Technical Notes", which links to its installation guide.
+
+**Why.**
+- The maintainer asked to demote OCRmyPDF, which is harder to install outside conda than the chapter's other tools, and to name Tesseract itself (2026-10-14).
+- conda-forge's `pytesseract` doesn't bring Tesseract; its `tesseract` package does, for Windows, macOS, and Linux.
+- The command still solves on conda-forge for Python 3.14 on linux-64, win-64, osx-arm64, and osx-64, with Tesseract 5.5.3 and pytesseract 0.3.13 (micromamba 2.9.0 dry runs on 2026-10-14, with `CONDA_OVERRIDE_OSX=13.0` for the macOS runs). Downloads shrink slightly: 653 MB on Linux, 714 MB on Windows, 429 MB on Apple Silicon, and 437 MB on Intel Macs.
+
+**Where.** `ch-01-introduction.qmd`, `README.md`, `AGENTS.md` ("Key Python libraries"), the course's `handouts/week-01/setup.md`, and chapter 9's install cell. This *supersedes* the next entry's choice of `ocrmypdf` as the way to bring Tesseract.
+
+## 2026-10-06 · `webdata` adds OCR: `ocrmypdf` and `pytesseract` (*superseded* in part, 2026-10-14, above)
 
 **Decision.**
 - Chapter 1's command adds `ocrmypdf pytesseract`, and so do its copies: the README, and the course's setup handout and its catch-up line.
