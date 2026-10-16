@@ -1,0 +1,409 @@
+# Recipes for Chapter 10's figures (ch-10-wikipedia.qmd). See tools/shots/README.md.
+#
+# "A Tour of Wikipedia" shows the features of a Wikipedia article that most
+# readers never open, each beside the API endpoint that reads it. Every page is
+# public and loads signed out. The article is the one chapters 1 and 5 use,
+# University of Colorado Boulder; the user page and contributions are Jimbo
+# Wales's, a public figure, chosen by the maintainer (2026-10-16) so that no
+# other individual is the subject of a figure. The history and talk page show
+# other editors' usernames, which are public pseudonyms on public pages; the
+# maintainer decided to show them as they are (2026-10-16).
+#
+# Crops start at the page's title bar (.vector-page-titlebar), not the window's top.
+# Signed-out readers see campaign banners above the title (in October 2026, a photo
+# contest), which come and go; a crop from the title bar leaves them out whatever
+# they are. Scrolled crops start 76 pixels down the window, below the floating
+# contents button that Vector pins to the window's top left at this width.
+#
+# Wikimedia's API gateway rate-limits by identity (see the README's field note
+# "A 429 on the first request can be the User-Agent"). Page loads here go to
+# en.wikipedia.org's HTML pages and pageviews.wmcloud.org, 8-30 seconds apart.
+chapter: ch-10
+qmd: ch-10-wikipedia.qmd
+defaults:
+  window: [800, 600]
+  scale: 2
+
+figures:
+  - id: article-tabs
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the article's front door and the features hidden in plain sight:
+      the Article tab (marker 1), the Talk tab (2), View history (3), the
+      languages button that lists the same topic in other editions (4), a
+      wikilink in the lead (5), and the infobox, which is a template (6). Keep
+      the title and the lead's first lines; leave out the rest of the page.
+    url: https://en.wikipedia.org/wiki/University_of_Colorado_Boulder
+    window: [800, 860]
+    steps:
+      - wait: {selector: 'table.infobox'}
+    expect:
+      status: 200
+      text: ['University of Colorado Boulder']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 540}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '#ca-nstab-main a', box: text}, side: below}
+        - {n: 2, at: {selector: '#ca-talk a', box: text}, side: below}
+        - {n: 3, at: {selector: '#ca-history a', box: text}, side: below}
+        - {n: 4, at: {selector: '#p-lang-btn label', box: element}, side: left}
+        # A wikilink's href is ./Title or /wiki/Title, depending on the parser; its title is the same in both
+        - {n: 5, at: {selector: '#mw-content-text p a[title="Colorado"]', nth: 0, box: text}, side: below, gap: 1}
+        - {n: 6, at: {selector: 'table.infobox caption', nth: 0, box: text}, side: left}
+    drifts: true        # the article, and Wikipedia's skin
+
+  - id: languages-menu
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show interlanguage links as a reader meets them: the languages button
+      open, with its search box (marker 1) and the list of editions that have
+      an article on the same topic (2). Keep the button and the top of the
+      list; leave out the article under it.
+    url: https://en.wikipedia.org/wiki/University_of_Colorado_Boulder
+    window: [800, 860]
+    steps:
+      - wait: {selector: '#p-lang-btn'}
+      - wait: {network_idle: true}    # the language selector's script loads after the page
+      - click: {selector: '#p-lang-btn-checkbox'}     # the label is under the checkbox
+      - wait: {selector: '.uls-rewrite'}
+    expect:
+      status: 200
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 420}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '.uls-rewrite__search-wrapper input'}, side: left}
+        - {n: 2, at: {text: '^All languages$'}, side: left}
+    drifts: true        # the editions, and the menu's look
+
+  - id: article-references
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the article's references: the References heading (marker 1) and the
+      first numbered citations (2), each with the source's title and, for many,
+      an archived copy. Leave out the sections above it.
+    url: https://en.wikipedia.org/wiki/University_of_Colorado_Boulder
+    steps:
+      - wait: {selector: 'ol.references'}
+      - scroll: {selector: '.mw-heading:has(#References)', offset: 90}
+    window: [800, 700]
+    expect:
+      status: 200
+    crop: {top: 76, height: 500}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '#References', box: text}, side: left}
+        # The article's Notes lists come first; these are the lists after the heading
+        - {n: 2, shape: bracket, at: {selector: '.mw-heading:has(#References) ~ * ol.references > li', nth: [0, 4]}, x: 36}
+    drifts: true
+
+  - id: article-categories
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the categories at the foot of the article (marker 1): the labels
+      that file it with other pages, each a link to a category page. Leave
+      out the references above.
+    url: https://en.wikipedia.org/wiki/University_of_Colorado_Boulder
+    steps:
+      - wait: {selector: '#catlinks'}
+      - scroll: {selector: '#catlinks', offset: 100}   # as far as the page goes; the box ends it
+    window: [800, 700]
+    expect:
+      status: 200
+      text: ['Categories']
+    crop: {selector: '#catlinks', pad: [12, 24, 12, 24]}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '#mw-normal-catlinks > a', box: text}, side: left}
+    drifts: true
+
+  - id: talk-page
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the article's talk page, where editors discuss changes: its header
+      (marker 1), which says what the page is for and links the rules for
+      discussing, and the banner shell under it (2), which records the
+      article's quality rating (B-class) and the WikiProjects that look after
+      it. Leave out the merge notice above and the discussions below.
+    url: https://en.wikipedia.org/wiki/Talk:University_of_Colorado_Boulder
+    window: [800, 1100]
+    steps:
+      - wait: {selector: '.talkheader'}
+    expect:
+      status: 200
+      text: ['Talk:University of Colorado Boulder']
+    crop: {between: ['.talkheader', '.wpbs'], pad: [3, 0, 12, 0]}     # the merge notice ends 4 pixels above
+    oversize: >-
+      the talk header and the rating banner under it are the figure's two
+      subjects, and together they run about 660 CSS pixels; the text is 15
+      pixels in the book
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '.talkheader'}, side: left}
+        - {n: 2, at: {selector: '.wpbs .assess', nth: 0}, side: left}
+    drifts: true
+
+  - id: revision-history
+    kind: capture
+    # robots.txt disallows this page to automated agents. The maintainer decided on
+    # 2026-10-16 to capture it anyway, as an educational exception: one signed-out
+    # page load per take, paced as every capture is (docs/decisions.md, 2026-10-16).
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the article's revision history, one row per edit: the edit's date
+      and time (marker 1), the editor's username (2), the article's size after
+      the edit and the change in bytes (3), and the edit summary (4). Editors'
+      usernames are public pseudonyms; the maintainer decided to show them.
+    url: https://en.wikipedia.org/w/index.php?title=University_of_Colorado_Boulder&action=history
+    window: [800, 760]
+    steps:
+      - wait: {selector: '#pagehistory'}
+    expect:
+      status: 200
+      text: ['Revision history']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 600}
+    annotate:
+      size: small
+      marks:      # all four above the newest edit's row, in the gap over it
+        - {n: 1, at: {selector: '#pagehistory .mw-changeslist-date', nth: 0, box: text}, side: above}
+        - {n: 2, at: {selector: '#pagehistory .mw-userlink', nth: 0, box: text}, side: above}
+        - {n: 3, at: {selector: '#pagehistory .mw-diff-bytes, #pagehistory .mw-plusminus-pos, #pagehistory .mw-plusminus-neg, #pagehistory .mw-plusminus-null', nth: 0, box: text}, side: above}
+        - {n: 4, at: {selector: '#pagehistory .comment', nth: 0, box: first-line}, side: above}
+    drifts: true
+
+  - id: pageviews-tool
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show the article's pageviews in Wikimedia's Pageviews Analysis tool, the
+      page that the Page information link leads to: the daily chart for the
+      third quarter of 2026 (marker 1) and the period's totals (2). The same
+      numbers come from the REST pageviews API.
+    url: https://pageviews.wmcloud.org/pageviews/?project=en.wikipedia.org&platform=all-access&agent=user&redirects=0&start=2026-07-01&end=2026-09-30&pages=University_of_Colorado_Boulder
+    window: [800, 700]
+    steps:
+      - wait: {selector: 'canvas'}
+      - wait: {network_idle: true}
+      - scroll: {selector: 'canvas', offset: 40}     # at this width the options come first
+    expect:
+      status: 200
+    crop: {top: 0, height: 600}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: 'canvas', nth: 0}, side: left}
+        - {n: 2, at: {text: '^Totals$'}, side: left}      # the period's views and daily average, under it
+    drifts: false       # a fixed, past date range
+
+  - id: what-links-here
+    kind: capture
+    # robots.txt disallows this page to automated agents. The maintainer decided on
+    # 2026-10-16 to capture it anyway, as an educational exception: one signed-out
+    # page load per take, paced as every capture is (docs/decisions.md, 2026-10-16).
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show What links here: the pages that link to the article (marker 1), with
+      the filters that hide redirects, transclusions, or links (2). This is the
+      article's place in the web of wikilinks, seen from the other end.
+    url: https://en.wikipedia.org/wiki/Special:WhatLinksHere/University_of_Colorado_Boulder
+    window: [800, 1000]
+    steps:
+      - wait: {selector: '#mw-whatlinkshere-list'}
+    expect:
+      status: 200
+      text: ['Pages that link to']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 600}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '#mw-whatlinkshere-list > li', nth: 0, box: first-line}, side: left}
+        - {n: 2, at: {text: '^Hide redirects$'}, side: right}
+    drifts: true
+
+  - id: user-page
+    kind: capture
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show a user page: Jimbo Wales's, as anyone signed out sees it. Mark the
+      User page tab (marker 1) and the title (2). A user page is where an
+      editor describes themself; the contributions page (next figure) is where
+      their work is listed.
+    url: https://en.wikipedia.org/wiki/User:Jimbo_Wales
+    window: [800, 860]
+    steps:
+      - wait: {selector: '#firstHeading'}
+    expect:
+      status: 200
+      text: ['Jimbo Wales']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 420}
+    annotate:
+      marks:
+        - {n: 1, at: {selector: '#ca-nstab-user a', box: text}, side: below}
+        - {n: 2, at: {selector: '#firstHeading', box: text}, side: right}
+    drifts: true
+
+  - id: user-contributions
+    kind: capture
+    # robots.txt disallows this page to automated agents. The maintainer decided on
+    # 2026-10-16 to capture it anyway, as an educational exception: one signed-out
+    # page load per take, paced as every capture is (docs/decisions.md, 2026-10-16).
+    section: "A Tour of Wikipedia"
+    brief: >-
+      Show Jimbo Wales's contributions, one row per edit across all of
+      Wikipedia: the date (marker 1), the page edited (2), the change in bytes
+      (3), and the edit summary (4).
+    url: https://en.wikipedia.org/wiki/Special:Contributions/Jimbo_Wales
+    window: [800, 760]
+    steps:
+      - wait: {selector: '.mw-contributions-list'}
+    expect:
+      status: 200
+      text: ['Jimbo Wales']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 600}
+    annotate:
+      size: small
+      # Above the newest row is the list's navigation line, so the marks go below or
+      # beside it; the row's second line is short, which leaves room below the rest
+      marks:
+        - {n: 1, at: {selector: '.mw-contributions-list .mw-changeslist-date', nth: 0, box: text}, side: left}
+        - {n: 2, at: {selector: '.mw-contributions-list .mw-contributions-title', nth: 0, box: text}, side: below}
+        - {n: 3, at: {selector: '.mw-contributions-list .mw-diff-bytes, .mw-contributions-list .mw-plusminus-pos, .mw-contributions-list .mw-plusminus-neg, .mw-contributions-list .mw-plusminus-null', nth: 0, box: text}, side: below}
+        - {n: 4, at: {selector: '.mw-contributions-list .comment', nth: 0, box: first-line}, side: below}
+    drifts: true
+
+  - id: api-response
+    kind: capture
+    # robots.txt disallows /w/ to automated agents; this is the same educational
+    # exception as the history page (docs/decisions.md, 2026-10-16). It is one API
+    # request, identified, like the chapter's own.
+    section: "The Anatomy of an API Call"
+    brief: >-
+      Show the chapter's first request answered in a browser: format=jsonfm is
+      the JSON response laid out as a web page. Mark the page's ID (marker 1),
+      which is the key under "pages", and the article's length in bytes (2),
+      the two values the chapter's code prints.
+    url: https://en.wikipedia.org/w/api.php?action=query&titles=University_of_Colorado_Boulder&prop=info&format=jsonfm
+    api_client: true      # the request the chapter's first cell makes
+    steps:
+      - wait: {text: '"pageid"'}
+    expect:
+      status: 200
+      text: ['University of Colorado Boulder']
+    crop: {top: 0, height: 600}
+    annotate:
+      marks:
+        - {n: 1, at: {match: '"pageid": \d+', in: 'pre'}, side: right}
+        - {n: 2, at: {match: '"length": \d+', in: 'pre'}, side: right}
+    drifts: true        # the length and the touched time change with each edit
+
+  - id: api-sandbox
+    kind: capture
+    section: "The Anatomy of an API Call"
+    brief: >-
+      Show Special:ApiSandbox with the chapter's first request filled in: the
+      modules down the side (marker 1), with action=query among them, and the
+      request built from the form (2), ready to run or to copy into Python.
+    url: https://en.wikipedia.org/wiki/Special:ApiSandbox#action=query&format=json&prop=info&titles=University_of_Colorado_Boulder
+    window: [800, 860]
+    steps:
+      - wait: {selector: '.mw-apisandbox-toolbar'}
+      - wait: {text: '^action=query$'}     # the module list loads by API, and a 429 leaves it empty
+    expect:
+      status: 200
+      text: ['API sandbox']
+    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 560}
+    annotate:
+      marks:
+        - {n: 1, at: {text: '^action=query$', nth: 0}, side: left}
+        - {n: 2, at: {selector: '.mw-apisandbox-toolbar', nth: 0}, side: left}
+    drifts: true
+
+  # The chapter's charts. tools/shots/renders/ch-10.py runs the chapter's own code
+  # cells, with the maintainer's contact in the User-Agent, and saves each chart the
+  # code shows. Every request in them has a fixed end date, so a rerun draws the
+  # same chart unless Wikimedia reclassifies past traffic ("What a Pageview Counts").
+  - id: cu-monthly-edits
+    kind: render
+    mode: hand
+    section: "Getting Revisions"
+    brief: >-
+      Chart edits per month to University of Colorado Boulder, from its first
+      edit in 2003 to September 2026, as the chapter's get_revisions() and
+      "Analyzing Revision History" cell draw it.
+    url: https://en.wikipedia.org/w/api.php?action=query&titles=University_of_Colorado_Boulder&prop=revisions&rvlimit=max&rvstart=2026-09-30T23:59:59Z
+    api_client: true
+    hand:
+      why: >-
+        matplotlib draws it from the Action API's revisions, as the chapter's
+        code does; no browser is involved
+      steps: >-
+        Run `python tools/shots/renders/ch-10.py OUTDIR --contact EMAIL`,
+        which runs the chapter's code cells and writes
+        OUTDIR/cu-monthly-edits.png, 1600 by 800 pixels. Import it with --tool
+        naming matplotlib's and requests' versions.
+      text_px: 13          # matplotlib's 10-point labels at 200 dpi, in an 800-pixel frame
+    window: [800, 400]
+
+  - id: cu-daily-views
+    kind: render
+    mode: hand
+    section: "Getting Pageviews"
+    brief: >-
+      Chart the article's daily pageviews by human readers (agent user), from
+      January 2021 to September 2026, as get_pageviews() returns them.
+    url: https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/University_of_Colorado_Boulder/daily/20210101/20260930
+    api_client: true
+    hand:
+      why: >-
+        matplotlib draws it from the REST pageviews API, as the chapter's code
+        does; no browser is involved
+      steps: >-
+        Run `python tools/shots/renders/ch-10.py OUTDIR --contact EMAIL`; it
+        writes OUTDIR/cu-daily-views.png, 1600 by 800 pixels. Import it with
+        --tool naming matplotlib's and requests' versions.
+      text_px: 13
+    window: [800, 400]
+
+  - id: cu-views-by-agent
+    kind: render
+    mode: hand
+    section: "What a Pageview Counts"
+    brief: >-
+      Chart the article's monthly pageviews for each agent (user, spider,
+      automated), January 2024 to September 2026: the same function called
+      once for each.
+    url: https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/University_of_Colorado_Boulder/monthly/20240101/20260930
+    api_client: true
+    hand:
+      why: >-
+        matplotlib draws it from the REST pageviews API, as the chapter's code
+        does; no browser is involved
+      steps: >-
+        Run `python tools/shots/renders/ch-10.py OUTDIR --contact EMAIL`; it
+        writes OUTDIR/cu-views-by-agent.png, 1600 by 800 pixels. Import it
+        with --tool naming matplotlib's and requests' versions.
+      text_px: 13
+    window: [800, 400]
+
+  - id: cu-boulder-combined
+    kind: render
+    mode: hand
+    section: "A Second Case Study: Boulder, Colorado"
+    brief: >-
+      Chart monthly views (top) and monthly edits (bottom) for University of
+      Colorado Boulder and Boulder, Colorado, January 2021 to September 2026,
+      sharing one time axis.
+    url: https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/Boulder%2C_Colorado/daily/20210101/20260930
+    api_client: true
+    hand:
+      why: >-
+        matplotlib draws it from the Action API's revisions and the REST
+        pageviews API, as the chapter's code does; no browser is involved
+      steps: >-
+        Run `python tools/shots/renders/ch-10.py OUTDIR --contact EMAIL`; it
+        writes OUTDIR/cu-boulder-combined.png, 1600 by 1000 pixels. Import it
+        with --tool naming matplotlib's and requests' versions.
+      text_px: 13
+    window: [800, 500]

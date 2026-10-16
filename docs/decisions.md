@@ -2,6 +2,20 @@
 
 Standing decisions for the book and its tools, newest first. Each entry gives the decision, the reason, and where the decision is written or enforced. Entries are never deleted. When a decision is replaced, it is marked *superseded*, with a link to the entry that replaces it. Proposals that nobody has decided yet are listed in [`handoff.md`](handoff.md), not here.
 
+## 2026-10-16 · Chapter 10's tour captures three pages that robots.txt disallows, and shows usernames as they are
+
+**Decision.**
+- Chapter 10's "A Tour of Wikipedia" captures the revision history, What links here, and a user's contributions, although Wikipedia's robots.txt disallows those pages to automated agents. Each is one signed-out page load per take, paced as every capture is. The three recipes in `tools/shots/recipes/ch-10.yml` say so in a comment.
+- The user page and contributions are Jimbo Wales's, a public figure.
+- Editors' usernames in the history and on the talk page are shown as they appear, not blurred.
+
+**Why.**
+- The maintainer called the captures an educational fair-use exception and asked for them to be taken with a headless browser (2026-10-16). The tour's point is that these pages exist and what each shows. A diagram would miss that, and a look-alike would break "Real captures, or diagrams labeled as diagrams".
+- robots.txt asks crawlers not to wander into endless, expensive pages. A handful of single loads, spaced out, is not that traffic. `tools/shots/run doctor` still warns about each page, and the warning stays.
+- Usernames on Wikipedia are public pseudonyms on public pages, chosen by their owners to be shown with their edits. The maintainer decided to show them (2026-10-16). The rule on private individuals in `AGENTS.md` is about real names in public records, such as council minutes.
+
+**Where.** `tools/shots/recipes/ch-10.yml`, `ch-10-wikipedia.qmd`.
+
 ## 2026-10-14 · `webdata` installs `tesseract` directly, not `ocrmypdf`
 
 **Decision.**
