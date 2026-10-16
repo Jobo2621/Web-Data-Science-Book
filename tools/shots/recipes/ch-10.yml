@@ -298,28 +298,6 @@ figures:
         - {n: 2, at: {match: '"length": \d+', in: 'pre'}, side: right}
     drifts: true        # the length and the touched time change with each edit
 
-  - id: api-sandbox
-    kind: capture
-    section: "The Anatomy of an API Call"
-    brief: >-
-      Show Special:ApiSandbox with the chapter's first request filled in: the
-      modules down the side (marker 1), with action=query among them, and the
-      request built from the form (2), ready to run or to copy into Python.
-    url: https://en.wikipedia.org/wiki/Special:ApiSandbox#action=query&format=json&prop=info&titles=University_of_Colorado_Boulder
-    window: [800, 860]
-    steps:
-      - wait: {selector: '.mw-apisandbox-toolbar'}
-      - wait: {text: '^action=query$'}     # the module list loads by API, and a 429 leaves it empty
-    expect:
-      status: 200
-      text: ['API sandbox']
-    crop: {selector: '.vector-page-titlebar', pad: [12, 24, 0, 24], height: 560}
-    annotate:
-      marks:
-        - {n: 1, at: {text: '^action=query$', nth: 0}, side: left}
-        - {n: 2, at: {selector: '.mw-apisandbox-toolbar', nth: 0}, side: left}
-    drifts: true
-
   # The chapter's charts. tools/shots/renders/ch-10.py runs the chapter's own code
   # cells, with the maintainer's contact in the User-Agent, and saves each chart the
   # code shows. Every request in them has a fixed end date, so a rerun draws the
