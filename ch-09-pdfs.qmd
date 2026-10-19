@@ -87,7 +87,7 @@ The chapter reads PDFs with pypdf and pdfplumber, starting in the next section, 
 
 ```{python}
 # Install four packages from conda-forge into the Python that runs this notebook
-%conda install -y -c conda-forge pypdf pdfplumber pytesseract tesseract
+If you use Colab then the install command might not work because Colab doesn't support `%conda. You can use `%pip install pypdf pdfplumber pytesseract` instead.
 ```
 
 It installs four packages, into whichever environment runs this notebook:
